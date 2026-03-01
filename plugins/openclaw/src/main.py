@@ -21,6 +21,7 @@ from watcher import OpenClawMultiWatcher
 from version_manager import VersionManager
 from profiles import ProfilesClient
 from sync import ProfileSync
+from register import Register, Login
 from interactive_auth import prompt_for_missing_config, interactive_setup, check_existing_config
 
 
@@ -73,23 +74,36 @@ class SoulSyncPlugin:
         print("\n=== Initializing SoulSync Plugin ===\n")
       
         self.client = OpenClawClient(self.config)
-      
+
+        token = self.client._load_token()
+        if token:
+            try:
+                profile = self.client.get_profile()
+                print(f"Using existing token, user: {profile.get('email', 'unknown')}")
+            except Exception as e:
+                print(f"Token invalid, please login again")
+                token = None
+
+        if not token:
+            print("\n=== 首次运行，请先登录或注册 ===\n")
+            print("1. 登录（已有账号）")
+            print("2. 注册（新用户）")
+
+            choice = input("请选择 (1/2): ").strip()
+
+            if choice == '1':
+                login = Login(self.client)
+                result = login.run()
+            elif choice == '2':
+                register = Register(self.client)
+                result = register.run()
+            else:
+                print("无效选择")
+                sys.exit(1)
+
         email = self.config.get('email')
         password = self.config.get('password')
-      
-        if not email or not password:
-            print("WARNING: Email and password not configured!")
-            print("Please edit config.json and add your email and password\n")
-            print("Continuing in offline mode...")
-            return
-      
-        try:
-            self.client.authenticate(email, password)
-        except Exception as e:
-            print(f"Authentication error: {e}")
-            print("Please check your config.json and try again\n")
-            raise
-      
+
         try:
             profile = self.client.get_profile()
             print(f"\nLogged in as: {profile.get('email')}")

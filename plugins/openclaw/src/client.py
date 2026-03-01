@@ -222,3 +222,77 @@ class OpenClawClient:
         """发送 ping 保持连接"""
         if self.ws and self.ws.sock and self.ws.sock.connected:
             self.ws.send(json.dumps({'type': 'ping'}))
+
+    def send_verification_code(self, email: str) -> dict:
+        """发送验证码
+        
+        Args:
+            email: 邮箱地址
+            
+        Returns:
+            发送结果
+        """
+        url = f"{self.cloud_url}/api/auth/send-code"
+        data = {'email': email}
+
+        response = requests.post(url, json=data, headers={'Content-Type': 'application/json'})
+
+        if response.status_code == 200:
+            return response.json()
+        elif response.status_code == 429:
+            error = response.json().get('error', 'Rate limit')
+            raise Exception(f"Send code failed: {error}")
+        else:
+            error = response.json().get('error', 'Unknown error')
+            raise Exception(f"Send code failed: {error}")
+
+    def register(self, email: str, password: str, code: str) -> dict:
+        """用户注册
+        
+        Args:
+            email: 邮箱地址
+            password: 密码
+            code: 验证码
+            
+        Returns:
+            注册结果
+        """
+        url = f"{self.cloud_url}/api/auth/register"
+        data = {'email': email, 'password': password, 'code': code}
+
+        response = requests.post(url, json=data, headers={'Content-Type': 'application/json'})
+
+        if response.status_code == 201:
+            result = response.json()
+            self.token = result.get('token')
+            self.user_id = result.get('user_id')
+            self._save_token(self.token)
+            return result
+        else:
+            error = response.json().get('error', 'Unknown error')
+            raise Exception(f"Registration failed: {error}")
+
+    def login(self, email: str, password: str) -> dict:
+        """用户登录
+        
+        Args:
+            email: 邮箱地址
+            password: 密码
+            
+        Returns:
+            登录结果
+        """
+        url = f"{self.cloud_url}/api/auth/login"
+        data = {'email': email, 'password': password}
+
+        response = requests.post(url, json=data, headers={'Content-Type': 'application/json'})
+
+        if response.status_code == 200:
+            result = response.json()
+            self.token = result.get('token')
+            self.user_id = result.get('user_id')
+            self._save_token(self.token)
+            return result
+        else:
+            error = response.json().get('error', 'Unknown error')
+            raise Exception(f"Login failed: {error}")

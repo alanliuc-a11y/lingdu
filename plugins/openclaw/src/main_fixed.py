@@ -90,6 +90,9 @@ class SoulSyncPlugin:
             print(f"使用默认服务器: {self.config['cloud_url']}")
             print()
         
+        # 创建临时客户端
+        self.client = OpenClawClient(self.config)
+        
         # 询问登录或注册
         print("请选择:")
         print("1. 登录已有账号")
@@ -123,12 +126,19 @@ class SoulSyncPlugin:
         
         print("\n正在登录...")
         
-        # 保存到配置
-        self.config['email'] = email
-        self.config['password'] = password
-        self.save_config()
-        
-        return True
+        try:
+            result = self.client.login(email, password)
+            print(f"✅ 登录成功!")
+            
+            # 保存到配置
+            self.config['email'] = email
+            self.config['password'] = password
+            self.save_config()
+            return True
+        except Exception as e:
+            print(f"❌ 登录失败: {e}")
+            print("\n请重新选择:")
+            return self.interactive_auth()
     
     def interactive_register(self):
         """交互式注册"""
@@ -141,6 +151,29 @@ class SoulSyncPlugin:
                 print("邮箱格式不正确，请重新输入")
                 continue
             break
+        
+        # 发送验证码
+        print(f"\n正在发送验证码到 {email}...")
+        try:
+            self.client.send_verification_code(email)
+            print("✅ 验证码已发送!")
+            print("请查看服务器控制台获取验证码")
+        except Exception as e:
+            print(f"❌ 发送验证码失败: {e}")
+            return self.interactive_auth()
+        
+        # 输入验证码
+        max_attempts = 3
+        for attempt in range(max_attempts):
+            code = self.get_input(f"请输入验证码 (剩余尝试 {max_attempts - attempt} 次): ").strip()
+            
+            if len(code) == 4 and code.isdigit():
+                break
+            else:
+                print("❌ 验证码格式错误，应为4位数字")
+                if attempt == max_attempts - 1:
+                    print("验证失败次数过多，请重新注册")
+                    return self.interactive_auth()
         
         # 输入密码
         while True:
@@ -156,35 +189,22 @@ class SoulSyncPlugin:
                 break
             print("两次密码不一致，请重新输入")
         
-        # 发送验证码
-        print(f"\n正在发送验证码到 {email}...")
-        print("✅ 验证码已发送!")
-        
-        # 输入验证码
-        max_attempts = 3
-        for attempt in range(max_attempts):
-            code = self.get_input(f"请输入验证码 (剩余尝试 {max_attempts - attempt} 次): ").strip()
-            
-            # 模拟验证（实际应该调用API）
-            if len(code) == 6 and code.isdigit():
-                print("✅ 验证成功!")
-                break
-            else:
-                print("❌ 验证码错误")
-                if attempt == max_attempts - 1:
-                    print("验证失败次数过多，请重新注册")
-                    return False
-        
-        # 完成注册
+        # 注册
         print("\n正在创建账号...")
-        print("✅ 注册成功!")
-        
-        # 保存配置
-        self.config['email'] = email
-        self.config['password'] = password
-        self.save_config()
-        
-        return True
+        try:
+            result = self.client.register(email, password, code)
+            print("✅ 注册成功!")
+            
+            # 保存配置
+            self.config['email'] = email
+            self.config['password'] = password
+            self.save_config()
+            
+            return True
+        except Exception as e:
+            print(f"❌ 注册失败: {e}")
+            print("\n请重新选择:")
+            return self.interactive_auth()
     
     def load_config(self):
         """加载配置文件"""
@@ -258,16 +278,15 @@ class SoulSyncPlugin:
         password = self.config.get('password')
         
         if not email or not password:
-            print("ERROR: Email and password not configured!")
-            raise RuntimeError("Authentication required")
-        
-        try:
-            self.client.authenticate(email, password)
-            print(f"\n✅ 登录成功: {email}")
-        except Exception as e:
-            print(f"\n❌ 登录失败: {e}")
-            print("请检查邮箱和密码")
-            raise
+            self.interactive_auth()
+        else:
+            try:
+                self.client.authenticate(email, password)
+                print(f"\n✅ 登录成功: {email}")
+            except Exception as e:
+                print(f"\n❌ 登录失败: {e}")
+                print("将进入交互式认证...")
+                self.interactive_auth()
         
         try:
             profile = self.client.get_profile()
