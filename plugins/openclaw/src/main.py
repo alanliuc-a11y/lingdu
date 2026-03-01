@@ -26,7 +26,6 @@ from interactive_auth import prompt_for_missing_config, interactive_setup, check
 
 
 class SoulSyncPlugin:
-class SoulSyncPlugin:
     """SoulSync OpenClaw 插件主类"""
   
     def __init__(self):

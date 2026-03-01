@@ -88,29 +88,25 @@ class OpenClawClient:
         if not email or not password:
             raise ValueError("Email and password required for first-time authentication")
         
-        url = f"{self.cloud_url}/api/auth/device"
+        # Try to login first
+        url = f"{self.cloud_url}/api/auth/login"
         data = {
-            'device_id': self.device_id,
             'email': email,
             'password': password
         }
         
         response = requests.post(url, json=data, headers={'Content-Type': 'application/json'})
         
-        if response.status_code == 201:
+        if response.status_code == 200:
             result = response.json()
             self.token = result.get('token')
-            self.user_id = result.get('user_id')
-            self._save_token(self.token)
-            print(f"Registered new user: {email}")
-            return result
-        elif response.status_code == 200:
-            result = response.json()
-            self.token = result.get('token')
-            self.user_id = result.get('user_id')
+            self.user_id = result.get('user', {}).get('id')
             self._save_token(self.token)
             print(f"Logged in: {email}")
             return result
+        elif response.status_code == 401:
+            # Login failed, try register (not supported in this flow)
+            raise Exception(f"Invalid email or password / 邮箱或密码错误")
         else:
             error = response.json().get('error', 'Unknown error')
             raise Exception(f"Authentication failed: {error}")
