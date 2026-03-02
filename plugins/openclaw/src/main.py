@@ -97,7 +97,7 @@ class SoulSyncPlugin:
                 register = Register(self.client)
                 result = register.run()
             else:
-                print("无效选择")
+                print("Invalid choice / 无效选择")
                 sys.exit(1)
 
         email = self.config.get('email')
