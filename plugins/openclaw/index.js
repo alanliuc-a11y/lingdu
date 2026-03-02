@@ -13,7 +13,7 @@ module.exports = function register(api) {
         .description('启动 SoulSync 同步服务')
         .action(() => {
           const pluginDir = path.dirname(__filename);
-          const pythonScript = path.join(pluginDir, 'src', 'main_fixed.py');
+          const pythonScript = path.join(pluginDir, 'src', 'main.py');
           const pythonPath = process.env.PYTHON_PATH || 'python3';
         
           console.log('[SoulSync] Starting Python service...');

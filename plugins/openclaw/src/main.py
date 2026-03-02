@@ -84,11 +84,11 @@ class SoulSyncPlugin:
                 token = None
 
         if not token:
-            print("\n=== 首次运行，请先登录或注册 ===\n")
-            print("1. 登录（已有账号）")
-            print("2. 注册（新用户）")
+            print("\n=== First run - Please login or register / 首次运行，请先登录或注册 ===\n")
+            print("1. Login / 登录（已有账号）")
+            print("2. Register / 注册（新用户）")
 
-            choice = input("请选择 (1/2): ").strip()
+            choice = input("Choose (1/2): ").strip()
 
             if choice == '1':
                 login = Login(self.client)
