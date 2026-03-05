@@ -9,7 +9,6 @@ SoulSync is a **cross-bot soul synchronization system**. It allows your AI assis
 - **Cloud-based memory storage** – All memories are stored in the cloud, accessible from anywhere.
 - **Real-time synchronization** – Changes are instantly synced via WebSocket.
 - **Multi-bot support** – Currently supports OpenClaw; more bots (CoPaw, etc.) coming soon.
-- **Subscription model** – Free tier + paid tiers with yearly discount.
 - **Progressive open source** – Backend code will be open-sourced after each major phase.
 
 ## Backend Service
@@ -18,16 +17,18 @@ The backend service is officially hosted and maintained by the SoulSync team. Us
 
 **Current Phase**: Phase 1 - Basic sync (v1.0.x)
 
-**Pricing**:
+> 🎉 **SoulSync is currently free for all users during the early access period!**
 
-| Tier | Monthly | Yearly | Files |
-|------|---------|--------|-------|
+**Planned Pricing** (not yet in effect):
+
+| Tier | Monthly | Yearly | Synced Files |
+|------|---------|--------|--------------|
 | **Free** | $0 | - | MEMORY.md, USER.md |
 | **Basic** | $1.19 | $11.9 | + IDENTITY.md, SOUL.md, TOOLS.md |
 | **Pro** | $3.99 | $39.9 | + AGENTS.md, skills.json, memory/ |
 
-- Free tier provides essential emotional connection - your bot remembers your name and preferences immediately
-- Upgrade anytime to unlock more files
+- Free tier provides essential emotional connection - your bot remembers your name and preferences immediately.
+- Upgrade anytime to unlock more files.
 
 ## Open Source Roadmap
 
@@ -66,7 +67,7 @@ Note: Backend server code is maintained separately and will be open-sourced prog
 
 ### 1. Register account
 
-Visit our official website (coming soon) to register an account. Start with the free tier and upgrade anytime.
+Visit our official website (coming soon) to register an account. All features are currently free during early access.
 
 ### 2. Install the OpenClaw plugin
 
@@ -86,7 +87,7 @@ Edit `~/.openclaw/extensions/soulsync/config.json`:
 
 ```json
 {
-  "cloud_url": "http://official-server.soulsync.io:3000",
+  "cloud_url": "https://soulsync.work",
   "email": "your-email@example.com",
   "password": "your-password"
 }

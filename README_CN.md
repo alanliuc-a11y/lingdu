@@ -9,7 +9,6 @@ SoulSync 是一个**跨机器人灵魂同步系统**，让你的 AI 助理（如
 - **云端记忆存储** – 所有记忆都存储在云端，随时随地可访问
 - **实时同步** – 通过 WebSocket 实现即时同步
 - **多机器人支持** – 目前已支持 OpenClaw，后续将支持 CoPaw 等更多机器人
-- **订阅模式** – 免费版 + 付费版，年付享优惠
 - **渐进式开源** – 后端代码将在每个大阶段完成后开源
 
 ## 后端服务
@@ -18,7 +17,9 @@ SoulSync 是一个**跨机器人灵魂同步系统**，让你的 AI 助理（如
 
 **当前阶段**：Phase 1 - 基础同步 (v1.0.x)
 
-**定价**：
+> 🎉 **SoulSync 目前处于早期体验阶段，所有功能免费开放！**
+
+**预计收费模式**（尚未生效）：
 
 | 层级 | 月付 | 年付 | 同步文件 |
 |------|------|------|----------|
@@ -66,7 +67,7 @@ soulsync/
 
 ### 1. 注册账号
 
-访问我们的官方网站（即将上线）注册账号。从免费版开始使用，随时升级。
+访问我们的官方网站（即将上线）注册账号。早期体验阶段所有功能免费。
 
 ### 2. 安装 OpenClaw 插件
 
@@ -86,7 +87,7 @@ openclaw plugins install /path/to/soulsync/plugins/openclaw
 
 ```json
 {
-  "cloud_url": "http://official-server.soulsync.io:3000",
+  "cloud_url": "https://soulsync.work",
   "email": "your-email@example.com",
   "password": "your-password"
 }
