@@ -86,7 +86,7 @@ class SoulSyncPlugin:
         
         # 设置默认服务器
         if not self.config.get('cloud_url'):
-            self.config['cloud_url'] = 'http://47.96.170.74:3000'
+            self.config['cloud_url'] = 'https://soulsync.work'
             print(f"使用默认服务器: {self.config['cloud_url']}")
             print()
         

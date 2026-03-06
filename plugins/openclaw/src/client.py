@@ -124,8 +124,12 @@ class OpenClawClient:
             print(f"Logged in: {email}")
             return result
         elif response.status_code == 401:
-            # Login failed, try register (not supported in this flow)
+            # Login failed
             raise Exception(f"Invalid email or password / 邮箱或密码错误")
+        elif response.status_code == 429:
+            # Rate limited
+            error = response.json().get('error', 'Too many attempts')
+            raise Exception(f"429: {error}")
         else:
             error = response.json().get('error', 'Unknown error')
             raise Exception(f"Authentication failed: {error}")

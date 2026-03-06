@@ -7,6 +7,7 @@ import json
 import os
 import sys
 import time
+import getpass
 
 # 获取插件根目录
 PLUGIN_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -98,29 +99,157 @@ class SoulSyncPlugin:
         from register import Register, Login
         from interactive_auth import interactive_setup
         
-        print("\n=== First run - Please login or register / 首次运行，请先登录或注册 ===\n")
-        print("1. Login / 登录（已有账号）")
-        print("2. Register / 注册（新用户）")
+        while True:
+            print("\n" + "=" * 50)
+            print("Welcome / 欢迎使用 SoulSync")
+            print("=" * 50)
+            print("1. Login / 登录（已有账号）")
+            print("2. Register / 注册（新用户）")
+            print("3. Exit / 退出")
 
-        choice = input("Choose (1/2): ").strip()
+            choice = input("Choose / 选择 (1/2/3): ").strip()
 
-        if choice == '1':
-            # 先创建临时 client 用于登录
-            temp_client = OpenClawClient(self.config)
-            login = Login(temp_client)
-            result = login.run()
-            if result:
-                # 保存认证信息到 config
-                self._save_auth_to_config(result)
-        elif choice == '2':
-            temp_client = OpenClawClient(self.config)
-            register = Register(temp_client)
-            result = register.run()
-            if result:
-                self._save_auth_to_config(result)
-        else:
-            print("Invalid choice / 无效选择")
-            sys.exit(1)
+            if choice == '1':
+                success = self._interactive_login()
+                if success:
+                    return True
+            elif choice == '2':
+                success = self._interactive_register()
+                if success:
+                    return True
+            elif choice == '3':
+                print("Exiting... / 退出...")
+                sys.exit(0)
+            else:
+                print("Invalid choice / 无效选择")
+    
+    def _interactive_login(self):
+        """交互式登录（带重试）"""
+        max_retries = 5
+        retry_count = 0
+        
+        while retry_count < max_retries:
+            print("\n--- Login / 登录 ---")
+            email = input("Email / 邮箱: ").strip()
+            if not email:
+                print("Email cannot be empty / 邮箱不能为空")
+                continue
+            
+            password = getpass.getpass("Password / 密码: ")
+            if not password:
+                print("Password cannot be empty / 密码不能为空")
+                continue
+            
+            try:
+                temp_client = OpenClawClient(self.config)
+                result = temp_client.authenticate(email, password)
+                if result:
+                    print("\n✅ Login successful! / 登录成功!")
+                    self._save_auth_to_config(result)
+                    return True
+            except Exception as e:
+                retry_count += 1
+                remaining = max_retries - retry_count
+                error_msg = str(e)
+                
+                if "429" in error_msg or "too many" in error_msg.lower():
+                    print(f"\n❌ {e}")
+                    print("\nToo many failed attempts / 登录失败次数过多")
+                    print("Exiting... / 退出...")
+                    sys.exit(0)
+                
+                if remaining > 0:
+                    print(f"\n❌ Login failed: {e} / 登录失败: {e}")
+                    print(f"Remaining attempts / 剩余尝试次数: {remaining}")
+                else:
+                    print(f"\n❌ Login failed: {e} / 登录失败: {e}")
+        
+        print("\n❌ Too many failed attempts. Please try again in 15 minutes. / 登录失败次数过多，请15分钟后再试")
+        print("Exiting... / 退出...")
+        sys.exit(0)
+    
+    def _interactive_register(self):
+        """交互式注册（带重试）"""
+        from register import Register
+        
+        max_retries = 5
+        retry_count = 0
+        
+        while retry_count < max_retries:
+            print("\n--- Register / 注册 ---")
+            email = input("Email / 邮箱: ").strip()
+            if not email or '@' not in email:
+                print("Invalid email / 无效邮箱")
+                continue
+            
+            password = getpass.getpass("Password / 密码: ")
+            if len(password) < 6:
+                print("Password must be at least 6 characters / 密码至少6位")
+                continue
+            
+            password2 = getpass.getpass("Confirm password / 确认密码: ")
+            if password != password2:
+                print("Passwords do not match / 两次密码不一致")
+                continue
+            
+            # 发送验证码
+            print(f"\nSending verification code to {email}...")
+            try:
+                temp_client = OpenClawClient(self.config)
+                temp_client.send_verification_code(email)
+                print("✅ Verification code sent! / 验证码已发送!")
+            except Exception as e:
+                print(f"❌ Failed to send code: {e}")
+                continue
+            
+            # 验证码输入（带重试）
+            code_retry = 0
+            while code_retry < max_retries:
+                code = input(f"Enter verification code / 请输入验证码 ({max_retries - code_retry} attempts left): ").strip()
+                if len(code) != 6 or not code.isdigit():
+                    code_retry += 1
+                    print("Invalid code format / 验证码格式错误")
+                    continue
+                
+                try:
+                    result = temp_client.register(email, password, code)
+                    print("\n✅ Registration successful! / 注册成功!")
+                    self._save_auth_to_config(result)
+                    return True
+                except Exception as e:
+                    code_retry += 1
+                    remaining_code = max_retries - code_retry
+                    if "invalid" in str(e).lower() or "expired" in str(e).lower():
+                        if remaining_code > 0:
+                            print(f"❌ Invalid or expired code: {e}")
+                            print(f"Remaining attempts / 剩余尝试: {remaining_code}")
+                        else:
+                            print("❌ Too many code attempts / 验证码错误次数过多")
+                            break
+                    else:
+                        print(f"❌ Registration failed: {e}")
+                        break
+            
+            if code_retry >= max_retries:
+                print("\nToo many code verification failures. Would you like to:")
+                print("1. Resend code / 重新发送验证码")
+                print("2. Start over / 重新开始")
+                print("3. Exit / 退出")
+                
+                sub_choice = input("Choose / 选择 (1/2/3): ").strip()
+                if sub_choice == '1':
+                    retry_count = 0  # 重置主重试计数
+                    continue
+                elif sub_choice == '2':
+                    retry_count = 0
+                    break  # 跳出内层循环，继续外层循环
+                else:
+                    print("Exiting... / 退出...")
+                    sys.exit(0)
+        
+        print("\n❌ Too many registration attempts / 注册尝试次数过多")
+        print("Exiting... / 退出...")
+        sys.exit(0)
     
     def _save_auth_to_config(self, auth_result):
         """保存认证结果到 config.json"""
