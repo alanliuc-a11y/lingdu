@@ -1,7 +1,7 @@
 {
   "cloud_url": "https://soulsync.work",
-  "email": "your-email@example.com",
-  "password": "your-password",
+  "email": "",
+  "password": "",
   "workspace": "./workspace",
   "memory_file": "MEMORY.md",
   "watch_files": [
@@ -13,5 +13,6 @@
     "skills.json",
     "memory/",
     "MEMORY.md"
-  ]
+  ],
+  "_comment": "Register at https://soulsync.work or use curl to call /api/auth/register endpoint"
 }
