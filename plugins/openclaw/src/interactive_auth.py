@@ -248,7 +248,7 @@ def prompt_for_missing_config(client):
         
         # 如果没有 cloud_url，设置默认值
         if not cloud_url:
-            config['cloud_url'] = 'http://47.96.170.74:3000'
+            config['cloud_url'] = 'https://soulsync.work'
             print(f"Using default server / 使用默认服务器: {config['cloud_url']}")
         
         # 交互式登录/注册

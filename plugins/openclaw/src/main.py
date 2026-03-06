@@ -40,11 +40,18 @@ class SoulSyncPlugin:
     def load_config(self):
         """加载配置文件"""
         config_path = os.path.normpath(os.path.join(PLUGIN_DIR, 'config.json'))
+        config_example_path = os.path.normpath(os.path.join(PLUGIN_DIR, 'config.json.example'))
       
         print(f"Looking for config at: {config_path}")
       
         if not os.path.exists(config_path):
-            raise FileNotFoundError(f"Config file not found: {config_path}")
+            if os.path.exists(config_example_path):
+                print("Config file not found, copying from config.json.example...")
+                import shutil
+                shutil.copy(config_example_path, config_path)
+                print(f"Created config.json from template")
+            else:
+                raise FileNotFoundError(f"Config file not found: {config_path}")
       
         try:
             with open(config_path, 'r', encoding='utf-8') as f:
@@ -52,6 +59,24 @@ class SoulSyncPlugin:
         except json.JSONDecodeError as e:
             raise ValueError(f"Invalid JSON in config.json: {e}")
       
+        # 检查必要配置
+        cloud_url = self.config.get('cloud_url', '').strip()
+        email = self.config.get('email', '').strip()
+        password = self.config.get('password', '').strip()
+        
+        # 如果 cloud_url 为空，设置为默认值
+        if not cloud_url:
+            self.config['cloud_url'] = 'https://soulsync.work'
+            print("Cloud URL not set, using default: https://soulsync.work")
+        
+        # 如果 email 或 password 为空，需要交互式认证
+        if not email or not password:
+            print("\nEmail or password not configured, initiating interactive setup...")
+            self._interactive_setup()
+            # 重新加载配置
+            with open(config_path, 'r', encoding='utf-8') as f:
+                self.config = json.load(f)
+        
         # 处理 workspace 路径
         workspace = self.config.get('workspace', './workspace')
         if workspace.startswith('./'):
@@ -68,6 +93,58 @@ class SoulSyncPlugin:
         print(f"  Workspace: {workspace}")
         print(f"  Watch files: {watch_files}")
   
+    def _interactive_setup(self):
+        """交互式设置：引导用户登录或注册"""
+        from register import Register, Login
+        from interactive_auth import interactive_setup
+        
+        print("\n=== First run - Please login or register / 首次运行，请先登录或注册 ===\n")
+        print("1. Login / 登录（已有账号）")
+        print("2. Register / 注册（新用户）")
+
+        choice = input("Choose (1/2): ").strip()
+
+        if choice == '1':
+            # 先创建临时 client 用于登录
+            temp_client = OpenClawClient(self.config)
+            login = Login(temp_client)
+            result = login.run()
+            if result:
+                # 保存认证信息到 config
+                self._save_auth_to_config(result)
+        elif choice == '2':
+            temp_client = OpenClawClient(self.config)
+            register = Register(temp_client)
+            result = register.run()
+            if result:
+                self._save_auth_to_config(result)
+        else:
+            print("Invalid choice / 无效选择")
+            sys.exit(1)
+    
+    def _save_auth_to_config(self, auth_result):
+        """保存认证结果到 config.json"""
+        config_path = os.path.normpath(os.path.join(PLUGIN_DIR, 'config.json'))
+        
+        try:
+            with open(config_path, 'r', encoding='utf-8') as f:
+                config = json.load(f)
+        except:
+            config = {}
+        
+        # 保存 email 和 password（如果 auth_result 包含）
+        if 'user' in auth_result:
+            config['email'] = auth_result['user'].get('email', '')
+        
+        # 保存 token
+        if 'token' in auth_result:
+            config['token'] = auth_result['token']
+        
+        with open(config_path, 'w', encoding='utf-8') as f:
+            json.dump(config, f, indent=2, ensure_ascii=False)
+        
+        print("Auth info saved to config.json")
+  
     def initialize(self):
         """初始化组件"""
         print("\n=== Initializing SoulSync Plugin ===\n")
@@ -80,11 +157,11 @@ class SoulSyncPlugin:
                 profile = self.client.get_profile()
                 print(f"Using existing token, user: {profile.get('email', 'unknown')}")
             except Exception as e:
-                print(f"Token invalid, please login again")
+                print(f"Token invalid / 令牌无效, re-authenticating: {e}")
                 token = None
 
         if not token:
-            print("\n=== First run - Please login or register / 首次运行，请先登录或注册 ===\n")
+            print("\n=== Token invalid - Please login or register / 令牌无效，请先登录或注册 ===\n")
             print("1. Login / 登录（已有账号）")
             print("2. Register / 注册（新用户）")
 

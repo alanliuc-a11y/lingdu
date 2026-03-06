@@ -1,8 +1,23 @@
 import json
 import os
+import ssl
 import uuid
 import requests
 import websocket
+from requests.adapters import HTTPAdapter
+from urllib3.poolmanager import PoolManager
+
+
+class TLSAdapter(HTTPAdapter):
+    """使用兼容 Python 3.13 的 SSL 适配器"""
+    def init_poolmanager(self, *args, **kwargs):
+        # 使用 create_default_context() 而不是 SSLContext(PROTOCOL_TLS_CLIENT)
+        # 这在 Python 3.13 + Windows 上更稳定
+        ctx = ssl.create_default_context()
+        # 可选：设置最低 TLS 版本为 1.2
+        ctx.minimum_version = ssl.TLSVersion.TLSv1_2
+        kwargs['ssl_context'] = ctx
+        return super().init_poolmanager(*args, **kwargs)
 
 
 class OpenClawClient:
@@ -16,6 +31,10 @@ class OpenClawClient:
         self.device_id = self._load_or_generate_device_id()
         self.ws = None
         self.ws_thread = None
+        
+        # 创建使用 TLS 1.2 的 session
+        self.session = requests.Session()
+        self.session.mount('https://', TLSAdapter())
     
     def _load_or_generate_device_id(self) -> str:
         """加载或生成设备ID"""
@@ -95,7 +114,7 @@ class OpenClawClient:
             'password': password
         }
         
-        response = requests.post(url, json=data, headers={'Content-Type': 'application/json'})
+        response = self.session.post(url, json=data, headers={'Content-Type': 'application/json'})
         
         if response.status_code == 200:
             result = response.json()
@@ -123,7 +142,7 @@ class OpenClawClient:
         url = f"{self.cloud_url}/api/memories"
         data = {'content': content}
         
-        response = requests.post(url, json=data, headers=self._get_headers())
+        response = self.session.post(url, json=data, headers=self._get_headers())
         
         if response.status_code == 200:
             return response.json()
@@ -142,7 +161,7 @@ class OpenClawClient:
         """
         url = f"{self.cloud_url}/api/memories"
         
-        response = requests.get(url, headers=self._get_headers())
+        response = self.session.get(url, headers=self._get_headers())
         
         if response.status_code == 200:
             return response.json()
@@ -160,7 +179,7 @@ class OpenClawClient:
         """
         url = f"{self.cloud_url}/api/memories/profile"
         
-        response = requests.get(url, headers=self._get_headers())
+        response = self.session.get(url, headers=self._get_headers())
         
         if response.status_code == 200:
             return response.json()
@@ -231,7 +250,7 @@ class OpenClawClient:
         url = f"{self.cloud_url}/api/auth/send-code"
         data = {'email': email}
 
-        response = requests.post(url, json=data, headers={'Content-Type': 'application/json'})
+        response = self.session.post(url, json=data, headers={'Content-Type': 'application/json'})
 
         if response.status_code == 200:
             return response.json()
@@ -256,7 +275,7 @@ class OpenClawClient:
         url = f"{self.cloud_url}/api/auth/register"
         data = {'email': email, 'password': password, 'code': code}
 
-        response = requests.post(url, json=data, headers={'Content-Type': 'application/json'})
+        response = self.session.post(url, json=data, headers={'Content-Type': 'application/json'})
 
         if response.status_code == 201:
             result = response.json()
@@ -281,7 +300,7 @@ class OpenClawClient:
         url = f"{self.cloud_url}/api/auth/login"
         data = {'email': email, 'password': password}
 
-        response = requests.post(url, json=data, headers={'Content-Type': 'application/json'})
+        response = self.session.post(url, json=data, headers={'Content-Type': 'application/json'})
 
         if response.status_code == 200:
             result = response.json()

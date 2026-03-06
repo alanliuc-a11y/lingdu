@@ -1,5 +1,5 @@
 {
-  "cloud_url": "http://your-server:3000",
+  "cloud_url": "https://soulsync.work",
   "email": "your-email@example.com",
   "password": "your-password",
   "workspace": "./workspace",
