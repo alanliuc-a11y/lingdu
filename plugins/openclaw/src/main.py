@@ -67,16 +67,6 @@ class SoulSyncPlugin:
             self.config['cloud_url'] = 'https://soulsync.work'
             print("[SoulSync] Cloud URL not set, using default: https://soulsync.work")
         
-        if not email or not password or email == 'your-email@example.com' or password == 'your-password':
-            print("\n[SoulSync] ========================================")
-            print("[SoulSync] Please configure your account first / 请先配置账号")
-            print("[SoulSync] ========================================")
-            print("[SoulSync] Edit config file / 编辑配置文件:")
-            print(f"           {config_path}")
-            print("[SoulSync] Set your email and password, then restart / 填写邮箱和密码后重启")
-            print("[SoulSync] ========================================\n")
-            sys.exit(0)
-        
         workspace = self.config.get('workspace', './workspace')
         if workspace.startswith('./'):
             workspace = workspace[2:]
