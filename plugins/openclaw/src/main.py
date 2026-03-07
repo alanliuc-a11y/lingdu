@@ -259,8 +259,8 @@ class SoulSyncPlugin:
                     sys.exit(0)
         
         print("\n[SoulSync] ❌ Too many registration attempts / 注册尝试次数过多")
-         print("[SoulSync] Exiting... / 退出...")
-         sys.exit(0)
+        print("[SoulSync] Exiting... / 退出...")
+        sys.exit(0)
     
     def initialize(self):
         """初始化组件"""
