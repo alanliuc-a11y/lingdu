@@ -49,6 +49,12 @@ function startPythonService(mode = '--start') {
   pythonProcess.on('close', (code) => {
     console.log(`[SoulSync] Python process exited with code ${code}`);
     pythonProcess = null;
+    
+    // If setup succeeded (code 0), auto-start sync
+    if (mode === '--setup' && code === 0) {
+      console.log('[SoulSync] Setup completed, starting sync service...');
+      startPythonService('--start');
+    }
   });
   
   pythonProcess.on('error', (err) => {

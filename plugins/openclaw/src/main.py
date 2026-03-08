@@ -92,9 +92,16 @@ class SoulSyncPlugin:
         except:
             config = {}
         
-        # 保存 email 和 password（如果 auth_result 包含）
-        if 'user' in auth_result:
+        # 保存 email（支持两种返回格式：authenticate 有 user 对象，register 只有一个字段）
+        if 'user' in auth_result and isinstance(auth_result.get('user'), dict):
             config['email'] = auth_result['user'].get('email', '')
+        elif 'email' in auth_result:
+            config['email'] = auth_result.get('email', '')
+        
+        # 保存 password（注册时输入的密码，需要保存以便自动登录）
+        # 注意：登录时我们只有从 config 读取的 password
+        if 'password' in auth_result:
+            config['password'] = auth_result.get('password', '')
         
         # 保存 token
         if 'token' in auth_result:
@@ -132,7 +139,7 @@ class SoulSyncPlugin:
                     return result
             elif choice == '0':
                 print("[SoulSync] Goodbye! / 再见！")
-                sys.exit(0)
+                sys.exit(2)
             else:
                 print("[SoulSync] Invalid choice / 无效选择")
     
@@ -164,6 +171,8 @@ class SoulSyncPlugin:
             temp_client = OpenClawClient(self.config)
             result = temp_client.authenticate(email, password)
             if result:
+                result['email'] = email
+                result['password'] = password
                 print("\n[SoulSync] ✓ Login successful! / 登录成功!")
                 self._save_auth_to_config(result)
                 return True
@@ -176,7 +185,7 @@ class SoulSyncPlugin:
                 print("[SoulSync] Exiting... / 退出...")
                 sys.exit(0)
             
-            print(f"\n[SoulSync] ❌ Login failed: {e} / 登录失败: {e}")
+            print(f"\n[SoulSync] ❌ {e}")
             print("[SoulSync] Returning to menu... / 返回菜单...")
             return None
         
@@ -292,22 +301,23 @@ class SoulSyncPlugin:
             try:
                 result = self.client.authenticate(email, password)
                 if result:
+                    result['email'] = email
+                    result['password'] = password
                     print("[SoulSync] Login successful! / 登录成功!")
                     self._save_auth_to_config(result)
                     token = self.client.token
             except Exception as e:
                 error_msg = str(e)
-                print(f"[SoulSync] Login failed: {e}")
                 
                 if "429" in error_msg or "too many" in error_msg.lower():
                     print("\n[SoulSync] ========================================")
+                    print(f"[SoulSync] ❌ {e}")
                     print("[SoulSync] Too many failed attempts. Please try again later / 登录失败次数过多，请稍后再试")
                     print("[SoulSync] ========================================\n")
                 else:
                     print("\n[SoulSync] ========================================")
-                    print("[SoulSync] Login failed: invalid email or password / 登录失败：邮箱或密码错误")
-                    print("[SoulSync] Please check your config file / 请检查配置文件:")
-                    print(f"           {os.path.normpath(os.path.join(PLUGIN_DIR, 'config.json'))}")
+                    print(f"[SoulSync] ❌ {e}")
+                    print("[SoulSync] Please run 'openclaw soulsync:setup' to reconfigure / 请运行 'openclaw soulsync:setup' 重新配置")
                     print("[SoulSync] ========================================\n")
                 
                 sys.exit(0)
@@ -338,13 +348,13 @@ class SoulSyncPlugin:
             self.config.get('workspace')
         )
       
-        print("Pulling all profiles from cloud...")
+        print("[SoulSync] Pulling all profiles from cloud...")
         try:
             self.profile_sync.pull_all()
         except Exception as e:
-            print(f"Warning: Could not pull profiles: {e}")
+            print(f"[SoulSync] Warning: Could not pull profiles: {e}")
       
-        print("\nStarting file watcher...")
+        print("\n[SoulSync] Starting file watcher...")
         watch_files = self.config.get('watch_files', [])
         self.watcher = OpenClawMultiWatcher(
             self.config.get('workspace'),
@@ -353,29 +363,29 @@ class SoulSyncPlugin:
         )
         self.watcher.start()
       
-        print("\nConnecting to WebSocket...")
+        print("\n[SoulSync] Connecting to WebSocket...")
         try:
             self.client.connect_websocket(self.on_websocket_message)
         except Exception as e:
-            print(f"Warning: Could not connect WebSocket: {e}")
+            print(f"[SoulSync] Warning: Could not connect WebSocket: {e}")
       
         self.running = True
   
     def on_file_change(self, event_type: str, relative_path: str, absolute_path: str = None):
         """文件变化回调"""
-        print(f"\n[File {event_type}] {relative_path}")
+        print(f"\n[SoulSync] [File {event_type}] {relative_path}")
       
         if event_type in ['modified', 'created']:
             time.sleep(0.5)
           
             try:
                 self.profile_sync.push_file(relative_path)
-                print(f"Upload completed: {relative_path}")
+                print(f"[SoulSync] Upload completed: {relative_path}")
             except Exception as e:
-                print(f"Upload error: {e}")
+                print(f"[SoulSync] Upload error: {e}")
       
         elif event_type == 'deleted':
-            print(f"File deleted (not synced to cloud): {relative_path}")
+            print(f"[SoulSync] File deleted (not synced to cloud): {relative_path}")
   
     def on_websocket_message(self, data: dict):
         """WebSocket 消息回调"""
@@ -384,24 +394,24 @@ class SoulSyncPlugin:
         if event == 'file_updated':
             file_path = data.get('file_path')
             version = data.get('version')
-            print(f"\n[WebSocket] File updated: {file_path} (v{version})")
+            print(f"\n[SoulSync] [WebSocket] File updated: {file_path} (v{version})")
             try:
                 self.profile_sync.on_remote_change(file_path, version)
             except Exception as e:
-                print(f"Sync error: {e}")
+                print(f"[SoulSync] Sync error: {e}")
       
         elif event == 'new_memory':
-            print(f"\n[WebSocket] New memory available!")
+            print(f"\n[SoulSync] [WebSocket] New memory available!")
             try:
                 self.profile_sync.pull_all()
-                print("Memory synced from remote")
+                print("[SoulSync] Memory synced from remote")
             except Exception as e:
-                print(f"Sync error: {e}")
+                print(f"[SoulSync] Sync error: {e}")
       
         elif data.get('type') == 'authenticated':
-            print(f"[WebSocket] Authenticated, socket_id: {data.get('socket_id')}")
+            print(f"[SoulSync] [WebSocket] Authenticated, socket_id: {data.get('socket_id')}")
         elif data.get('type') == 'error':
-            print(f"[WebSocket] Error: {data.get('message')}")
+            print(f"[SoulSync] [WebSocket] Error: {data.get('message')}")
   
     def run(self):
         """运行插件"""
@@ -413,17 +423,17 @@ class SoulSyncPlugin:
             self.load_config()
             self.initialize()
           
-            print("\n=== Plugin Running ===")
-            print("Press Ctrl+C to stop\n")
+            print("\n[SoulSync] === Plugin Running ===")
+            print("[SoulSync] Press Ctrl+C to stop\n")
           
             while self.running:
                 time.sleep(1)
               
         except KeyboardInterrupt:
-            print("\n\nShutting down...")
+            print("\n[SoulSync] Shutting down...")
             self.shutdown()
         except Exception as e:
-            print(f"\nError: {e}")
+            print(f"\n[SoulSync] Error: {e}")
             import traceback
             traceback.print_exc()
             self.shutdown()
@@ -431,24 +441,24 @@ class SoulSyncPlugin:
   
     def shutdown(self):
         """关闭插件"""
-        print("Shutting down SoulSync plugin...")
+        print("[SoulSync] Shutting down SoulSync plugin...")
         self.running = False
       
         if self.watcher:
             try:
                 self.watcher.stop()
-                print("File watcher stopped")
+                print("[SoulSync] File watcher stopped")
             except Exception as e:
-                print(f"Error stopping watcher: {e}")
+                print(f"[SoulSync] Error stopping watcher: {e}")
       
         if self.client:
             try:
                 self.client.close()
-                print("Client connection closed")
+                print("[SoulSync] Client connection closed")
             except Exception as e:
-                print(f"Error closing client: {e}")
+                print(f"[SoulSync] Error closing client: {e}")
       
-        print("Plugin shutdown complete")
+        print("[SoulSync] Plugin shutdown complete")
 def main():
     """主函数"""
     try:
@@ -463,12 +473,18 @@ def main():
         if args.setup:
             try:
                 plugin.load_config()
-                plugin.run_setup()
-                print("\n[SoulSync] ✓ Setup complete! Run 'openclaw soulsync:start' to begin syncing.")
-                print("[SoulSync] 设置完成！运行 'openclaw soulsync:start' 开始同步。")
+                result = plugin.run_setup()
+                if result:
+                    print("\n[SoulSync] ✓ Setup complete! Starting sync... / 设置完成！正在启动同步...")
+                    print("\n[SoulSync] ========================================")
+                    print("[SoulSync] Starting SoulSync sync service...")
+                    print("[SoulSync] ========================================\n")
+                    plugin.initialize()
+                    plugin.run()
+                    return
             except KeyboardInterrupt:
                 print("\n[SoulSync] Cancelled by user. Goodbye! / 已取消，再见！")
-            sys.exit(0)
+            sys.exit(2)
         
         plugin.load_config()
         

@@ -48,8 +48,6 @@ class OpenClawClient:
         new_device_id = str(uuid.uuid4())
         with open(device_id_file, 'w') as f:
             f.write(new_device_id)
-        
-        print(f"Generated new device_id: {new_device_id}")
         return new_device_id
     
     def _save_token(self, token: str):
