@@ -391,20 +391,12 @@ class SoulSyncPlugin:
         """WebSocket 消息回调"""
         event = data.get('event')
       
-        if event == 'file_updated':
-            file_path = data.get('file_path')
+        if event == 'profile:updated':
+            user_id = data.get('user_id')
             version = data.get('version')
-            print(f"\n[SoulSync] [WebSocket] File updated: {file_path} (v{version})")
-            try:
-                self.profile_sync.on_remote_change(file_path, version)
-            except Exception as e:
-                print(f"[SoulSync] Sync error: {e}")
-      
-        elif event == 'new_memory':
-            print(f"\n[SoulSync] [WebSocket] New memory available!")
+            print(f"\n[SoulSync] [WebSocket] Profile updated (v{version})")
             try:
                 self.profile_sync.pull_all()
-                print("[SoulSync] Memory synced from remote")
             except Exception as e:
                 print(f"[SoulSync] Sync error: {e}")
       

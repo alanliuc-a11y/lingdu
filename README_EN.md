@@ -23,11 +23,11 @@ The backend service is officially hosted and maintained by the SoulSync team. Us
 
 | Tier | Monthly | Yearly | Synced Files |
 |------|---------|--------|--------------|
-| **Free** | $0 | - | MEMORY.md, USER.md |
-| **Basic** | $1.19 | $11.9 | + IDENTITY.md, SOUL.md, TOOLS.md |
+| **Free** | $0 | - | SOUL.md, USER.md, MEMORY.md |
+| **Basic** | $1.19 | $11.9 | + IDENTITY.md, TOOLS.md |
 | **Pro** | $3.99 | $39.9 | + AGENTS.md, skills.json, memory/ |
 
-- Free tier provides essential emotional connection - your bot remembers your name and preferences immediately.
+- **Free tier** syncs 3 core files — your bot knows who it is (SOUL.md), who you are (USER.md), and what it remembers about you (MEMORY.md). Switch devices and your AI recognizes you instantly.
 - Upgrade anytime to unlock more files.
 
 ## Open Source Roadmap

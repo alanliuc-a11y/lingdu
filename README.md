@@ -29,11 +29,11 @@ The backend service is officially hosted and maintained by the SoulSync team. Us
 
 | Tier | Monthly | Yearly | Synced Files |
 |------|---------|--------|--------------|
-| **Free** | $0 | - | MEMORY.md, USER.md |
-| **Basic** | $1.19 | $11.9 | + IDENTITY.md, SOUL.md, TOOLS.md |
+| **Free** | $0 | - | SOUL.md, USER.md, MEMORY.md |
+| **Basic** | $1.19 | $11.9 | + IDENTITY.md, TOOLS.md |
 | **Pro** | $3.99 | $39.9 | + AGENTS.md, skills.json, memory/ |
 
-- Free tier provides essential emotional connection - your bot remembers your name and preferences immediately.
+- **Free tier** syncs 3 core files — your bot knows who it is (SOUL.md), who you are (USER.md), and what it remembers about you (MEMORY.md). Switch devices and your AI recognizes you instantly.
 - Upgrade anytime to unlock more files.
 
 ### Open Source Roadmap
@@ -157,11 +157,11 @@ SoulSync 是一个**跨机器人灵魂同步系统**，让你的 AI 助理（如
 
 | 层级 | 月付 | 年付 | 同步文件 |
 |------|------|------|----------|
-| **免费版** | ¥0 | - | MEMORY.md, USER.md |
-| **初级版** | ¥4.9 | ¥49 | + IDENTITY.md, SOUL.md, TOOLS.md |
+| **免费版** | ¥0 | - | SOUL.md, USER.md, MEMORY.md |
+| **初级版** | ¥4.9 | ¥49 | + IDENTITY.md, TOOLS.md |
 | **高级版** | ¥12.9 | ¥129 | + AGENTS.md, skills.json, memory/ |
 
-- 免费版提供核心的情感连接 - 你的机器人立即记得你的名字和偏好
+- **免费版**同步 3 个核心文件 — bot 知道自己是谁（SOUL.md）、用户是谁（USER.md）、以及对用户的记忆（MEMORY.md）。换台设备，AI 立刻认识你。
 - 随时升级解锁更多文件
 
 ### 开源路线图

@@ -2,11 +2,20 @@
 
 ## 一、需求概述
 
-扩展 SoulSync 实现 OpenClaw 完整灵魂同步，支持以下文件的实时同步：
-- 人格与灵魂：`SOUL.md`、`IDENTITY.md`、`USER.md`
+扩展 SoulSync 实现 OpenClaw 完整灵魂同步，按免费/付费分层同步：
+
+### 免费版（灵魂三件套）
+- `SOUL.md` — bot 是谁
+- `USER.md` — 用户是谁
+- `MEMORY.md` — bot 对用户的记忆
+
+> 换台设备，AI 立刻认识你。三个文件加起来几 KB，零成本，情绪价值拉满。
+
+### 付费版（完整工作空间）
+- 人格扩展：`IDENTITY.md`
 - 工作空间配置：`AGENTS.md`、`TOOLS.md`
 - 技能配置：`skills.json`、`skills/` 目录下的个性化设置
-- 原有功能：`MEMORY.md`、`memory/` 目录
+- 增量记忆：`memory/` 目录
 
 ---
 

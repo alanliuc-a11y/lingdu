@@ -132,54 +132,13 @@ class OpenClawClient:
             error = response.json().get('error', 'Unknown error')
             raise Exception(f"Authentication failed: {error}")
     
-    def upload_memory(self, content: str) -> dict:
-        """上传记忆
-        
-        Args:
-            content: 记忆内容
-            
-        Returns:
-            上传结果
-        """
-        url = f"{self.cloud_url}/api/memories"
-        data = {'content': content}
-        
-        response = self.session.post(url, json=data, headers=self._get_headers())
-        
-        if response.status_code == 200:
-            return response.json()
-        elif response.status_code == 403:
-            error = response.json().get('error', 'Subscription required')
-            raise Exception(f"Upload failed: {error}")
-        else:
-            error = response.json().get('error', 'Unknown error')
-            raise Exception(f"Upload failed: {error}")
-    
-    def download_memory(self) -> dict:
-        """下载记忆
-        
-        Returns:
-            包含 content, version 等信息的字典
-        """
-        url = f"{self.cloud_url}/api/memories"
-        
-        response = self.session.get(url, headers=self._get_headers())
-        
-        if response.status_code == 200:
-            return response.json()
-        elif response.status_code == 404:
-            return {'content': '', 'version': 0}
-        else:
-            error = response.json().get('error', 'Unknown error')
-            raise Exception(f"Download failed: {error}")
-    
     def get_profile(self) -> dict:
         """获取用户信息
         
         Returns:
             用户信息
         """
-        url = f"{self.cloud_url}/api/memories/profile"
+        url = f"{self.cloud_url}/api/profiles"
         
         response = self.session.get(url, headers=self._get_headers())
         

@@ -42,7 +42,7 @@ class ProfileSync:
                 with open(absolute_path, 'r', encoding='utf-8') as f:
                     return f.read()
             except Exception as e:
-                print(f"[Sync] Error reading local file {file_path}: {e}")
+                print(f"[SoulSync] Error reading local file {file_path}: {e}")
                 return None
         return None
   
@@ -57,7 +57,7 @@ class ProfileSync:
             with open(absolute_path, 'w', encoding='utf-8') as f:
                 f.write(content)
         except Exception as e:
-            print(f"[Sync] Error writing local file {file_path}: {e}")
+            print(f"[SoulSync] Error writing local file {file_path}: {e}")
   
     def _create_conflict_backup(self, file_path: str, local_content: str, server_content: str):
         """创建冲突备份文件"""
@@ -71,64 +71,51 @@ class ProfileSync:
                 f.write(local_content or "(empty)")
                 f.write("\n\n========== SERVER VERSION ==========\n")
                 f.write(server_content or "(empty)")
-            print(f"[Sync] Conflict backup created: {conflict_path}")
+            print(f"[SoulSync] Conflict backup created: {conflict_path}")
         except Exception as e:
-            print(f"[Sync] Error creating conflict backup: {e}")
+            print(f"[SoulSync] Error creating conflict backup: {e}")
   
     def pull_all(self):
         """Pull all profiles from cloud"""
-        print("[Sync] Pulling all profiles from cloud...")
+        print("[SoulSync] Pulling all profiles from cloud...")
         
         try:
             result = self.client.get_profiles()
-            cloud_files = result.get('files', [])
+            cloud_content = result.get('content', {})
+            cloud_version = result.get('version', 0)
         except Exception as e:
-            print(f"[Sync] Error fetching cloud profiles: {e}")
+            print(f"[SoulSync] Error fetching cloud profiles: {e}")
             return
         
-        if not cloud_files:
-            print("[Sync] No files on cloud")
+        if not cloud_content:
+            print("[SoulSync] No profiles on cloud")
             return
         
+        local_files = ['SOUL.md', 'USER.md', 'MEMORY.md']
         pulled_count = 0
-        pushed_count = 0
         skipped_count = 0
         
-        for cloud_file in cloud_files:
-            file_path = cloud_file.get('file_path')
-            cloud_version = cloud_file.get('version', 0)
-            cloud_content = cloud_file.get('content', '')
-            
-            if not file_path:
-                continue
-            
-            local_content = self._read_local_file(file_path)
-            local_version = self.version_manager.get_version(file_path)
+        for file_name in local_files:
+            cloud_file_content = cloud_content.get(file_name, '')
+            local_content = self._read_local_file(file_name)
+            local_version = self.version_manager.get_version(file_name)
             
             if cloud_version > local_version:
-                self._mark_syncing(file_path)
+                self._mark_syncing(file_name)
                 try:
-                    self._write_local_file(file_path, cloud_content)
-                    self.version_manager.set_version(file_path, cloud_version)
-                    pulled_count += 1
-                    print(f"[Sync] Pulled: {file_path} (v{cloud_version})")
+                    if cloud_file_content:
+                        self._write_local_file(file_name, cloud_file_content)
+                        self.version_manager.set_version(file_name, cloud_version)
+                        pulled_count += 1
+                        print(f"[SoulSync] Pulled: {file_name} (v{cloud_version})")
                 finally:
-                    self._unmark_syncing(file_path)
-            elif local_version > cloud_version and local_content is not None:
-                try:
-                    result = self.client.upload_profile(file_path, local_content, local_version)
-                    self.version_manager.set_version(file_path, result.get('version', local_version))
-                    pushed_count += 1
-                    print(f"[Sync] Pushed: {file_path} (v{local_version})")
-                except ConflictError as e:
-                    self._handle_conflict(file_path, local_content, e.server_content, e.server_version)
-                    pushed_count += 1
-                except Exception as e:
-                    print(f"[Sync] Error pushing {file_path}: {e}")
+                    self._unmark_syncing(file_name)
             else:
                 skipped_count += 1
         
-        print(f"[Sync] Sync complete: {pulled_count} pulled, {pushed_count} pushed, {skipped_count} skipped")
+        self.version_manager.set_version('__profiles__', cloud_version)
+        
+        print(f"[SoulSync] Sync complete: {pulled_count} pulled, {skipped_count} skipped")
   
     def push_file(self, file_path: str):
         """Push a file to cloud"""
@@ -140,64 +127,84 @@ class ProfileSync:
         try:
             local_content = self._read_local_file(file_path)
             if local_content is None:
-                print(f"[Sync] File not found locally: {file_path}")
+                print(f"[SoulSync] File not found locally: {file_path}")
                 return
             
             local_version = self.version_manager.get_version(file_path)
             
+            profiles_version = self.version_manager.get_version('__profiles__')
+            
+            current_profiles = {}
             try:
-                result = self.client.upload_profile(file_path, local_content, local_version)
-                new_version = result.get('version', local_version + 1)
+                result = self.client.get_profiles()
+                current_profiles = result.get('content', {})
+            except Exception:
+                pass
+            
+            current_profiles[file_path] = local_content
+            
+            try:
+                result = self.client.upload_profiles(current_profiles, profiles_version)
+                new_version = result.get('version', profiles_version + 1)
+                self.version_manager.set_version('__profiles__', new_version)
                 self.version_manager.set_version(file_path, new_version)
-                print(f"[Sync] Pushed: {file_path} (v{new_version})")
+                print(f"[SoulSync] Pushed: {file_path} (v{new_version})")
             except ConflictError as e:
                 self._handle_conflict(file_path, local_content, e.server_content, e.server_version)
             except Exception as e:
-                print(f"[Sync] Error pushing {file_path}: {e}")
+                print(f"[SoulSync] Error pushing {file_path}: {e}")
         finally:
             self._unmark_syncing(file_path)
   
     def on_remote_change(self, file_path: str, version: int):
         """Handle remote file change"""
-        local_version = self.version_manager.get_version(file_path)
+        local_version = self.version_manager.get_version('__profiles__')
         
         if version <= local_version:
-            print(f"[Sync] Remote version not newer, skipping: {file_path} (local: v{local_version}, remote: v{version})")
+            print(f"[SoulSync] Remote version not newer, skipping: {file_path} (local: v{local_version}, remote: v{version})")
             return
         
         self._mark_syncing(file_path)
         
         try:
-            result = self.client.get_profiles(file_path)
-            files = result.get('files', [])
-            if not files:
-                print(f"[Sync] File not found on cloud: {file_path}")
+            result = self.client.get_profiles()
+            cloud_content = result.get('content', {})
+            cloud_version = result.get('version', 0)
+            
+            if file_path not in cloud_content:
+                print(f"[SoulSync] File not found on cloud: {file_path}")
                 return
             
-            cloud_file = files[0]
-            cloud_content = cloud_file.get('content', '')
+            cloud_file_content = cloud_content.get(file_path, '')
             
             local_content = self._read_local_file(file_path)
             
-            if local_content is not None and local_content != cloud_content:
-                self._create_conflict_backup(file_path, local_content, cloud_content)
+            if local_content is not None and local_content != cloud_file_content:
+                self._create_conflict_backup(file_path, local_content, cloud_file_content)
             
-            self._write_local_file(file_path, cloud_content)
+            self._write_local_file(file_path, cloud_file_content)
+            self.version_manager.set_version('__profiles__', cloud_version)
             self.version_manager.set_version(file_path, version)
-            print(f"[Sync] Pulled remote change: {file_path} (v{version})")
+            print(f"[SoulSync] Pulled remote change: {file_path} (v{version})")
         except Exception as e:
-            print(f"[Sync] Error handling remote change for {file_path}: {e}")
+            print(f"[SoulSync] Error handling remote change for {file_path}: {e}")
         finally:
             self._unmark_syncing(file_path)
   
     def _handle_conflict(self, file_path: str, local_content: str, server_content: str, server_version: int):
         """Handle conflict when pushing file"""
-        print(f"[Sync] CONFLICT detected for {file_path}")
+        print(f"[SoulSync] CONFLICT detected for {file_path}")
         
         self._create_conflict_backup(file_path, local_content, server_content)
         
-        self._write_local_file(file_path, server_content)
+        if isinstance(server_content, dict):
+            server_file_content = server_content.get(file_path, '')
+        else:
+            server_file_content = server_content
+        
+        self._write_local_file(file_path, server_file_content)
+        self.version_manager.set_version('__profiles__', server_version)
         self.version_manager.set_version(file_path, server_version)
         
-        print(f"[Sync] Conflict resolved: server version used for {file_path}")
-        print(f"[Sync] Please manually merge the conflict backup file")
+        print(f"[SoulSync] Conflict resolved: server version used for {file_path}")
+        print(f"[SoulSync] Please manually merge the conflict backup file")
