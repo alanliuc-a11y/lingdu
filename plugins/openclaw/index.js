@@ -171,7 +171,7 @@ module.exports = function register(api) {
 
   api.registerTool({
     name: 'soulsync_status',
-    description: 'Check SoulSync connection status. Call when user asks about SoulSync status or sync status.',
+    description: 'Check SoulSync plugin status for OpenClaw (小龙虾). Call when user mentions SoulSync, soul sync, 灵魂同步, OpenClaw plugin, 小龙虾插件, or asks about sync status.',
     input_schema: {
       type: 'object',
       properties: {},
@@ -214,7 +214,7 @@ module.exports = function register(api) {
 
   api.registerTool({
     name: 'soulsync_send_code',
-    description: 'Send verification code to email for SoulSync registration. Call when user wants to register/signup for SoulSync and provides email.',
+    description: 'Send verification code for SoulSync OpenClaw plugin (小龙虾插件) registration. Call when user wants to register/signup for SoulSync plugin and provides email.',
     input_schema: {
       type: 'object',
       properties: {
@@ -247,7 +247,7 @@ module.exports = function register(api) {
 
   api.registerTool({
     name: 'soulsync_register',
-    description: 'Complete SoulSync registration with email, verification code and password.',
+    description: 'Complete SoulSync OpenClaw plugin (小龙虾插件) registration with email, verification code and password.',
     input_schema: {
       type: 'object',
       properties: {
@@ -305,7 +305,7 @@ module.exports = function register(api) {
 
   api.registerTool({
     name: 'soulsync_login',
-    description: 'Login to existing SoulSync account. Call when user wants to login to SoulSync.',
+    description: 'Login to existing SoulSync account for OpenClaw plugin (小龙虾插件). Call when user wants to login/connect SoulSync plugin.',
     input_schema: {
       type: 'object',
       properties: {
@@ -361,7 +361,7 @@ module.exports = function register(api) {
 
   api.registerTool({
     name: 'soulsync_sync',
-    description: 'Manually trigger SoulSync to sync soul files (SOUL.md, USER.md, MEMORY.md) between local and cloud.',
+    description: 'Manually trigger SoulSync OpenClaw plugin (小龙虾插件) to sync soul files (SOUL.md, USER.md, MEMORY.md) between local and cloud.',
     input_schema: {
       type: 'object',
       properties: {},
