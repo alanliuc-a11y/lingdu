@@ -67,6 +67,9 @@ class OpenClawClient:
             with open(token_file, 'r') as f:
                 return f.read().strip()
         
+        if self.config and self.config.get('token'):
+            return self.config.get('token')
+        
         return None
     
     def _get_headers(self) -> dict:
@@ -243,6 +246,8 @@ class OpenClawClient:
             self.token = result.get('token')
             self.user_id = result.get('user_id')
             self._save_token(self.token)
+            if self.config:
+                self.config['token'] = self.token
             return result
         else:
             error = response.json().get('error', 'Unknown error')
@@ -268,6 +273,8 @@ class OpenClawClient:
             self.token = result.get('token')
             self.user_id = result.get('user_id')
             self._save_token(self.token)
+            if self.config:
+                self.config['token'] = self.token
             return result
         else:
             error = response.json().get('error', 'Unknown error')

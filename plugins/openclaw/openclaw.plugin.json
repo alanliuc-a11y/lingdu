@@ -7,12 +7,12 @@
     "properties": {
       "cloud_url": { "type": "string" },
       "email": { "type": "string" },
-      "password": { "type": "string" }
+      "token": { "type": "string" }
     }
   },
   "uiHints": {
-    "cloud_url": { "label": "服务器地址", "placeholder": "http://localhost:3000" },
-    "email": { "label": "邮箱" },
-    "password": { "label": "密码", "sensitive": true }
+    "cloud_url": { "label": "服务器地址 / Server URL", "placeholder": "https://soulsync.work" },
+    "email": { "label": "邮箱 / Email" },
+    "token": { "label": "Token", "sensitive": true }
   }
 }

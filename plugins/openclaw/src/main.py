@@ -61,7 +61,7 @@ class SoulSyncPlugin:
       
         cloud_url = self.config.get('cloud_url', '').strip()
         email = self.config.get('email', '').strip()
-        password = self.config.get('password', '').strip()
+        token = self.config.get('token', '').strip()
         
         if not cloud_url:
             self.config['cloud_url'] = 'https://soulsync.work'
@@ -97,11 +97,6 @@ class SoulSyncPlugin:
             config['email'] = auth_result['user'].get('email', '')
         elif 'email' in auth_result:
             config['email'] = auth_result.get('email', '')
-        
-        # 保存 password（注册时输入的密码，需要保存以便自动登录）
-        # 注意：登录时我们只有从 config 读取的 password
-        if 'password' in auth_result:
-            config['password'] = auth_result.get('password', '')
         
         # 保存 token
         if 'token' in auth_result:
@@ -290,47 +285,32 @@ class SoulSyncPlugin:
                 profile = self.client.get_profile()
                 print(f"[SoulSync] Using existing token, user: {profile.get('email', 'unknown')}")
             except Exception as e:
+                error_str = str(e)
+                if '401' in error_str or 'Unauthorized' in error_str or 'token' in error_str.lower():
+                    print("[SoulSync] Token expired or invalid. Please re-login via chat: say 'login SoulSync'")
+                    print("[SoulSync] Token 已过期，请在聊天中说 'login SoulSync' 重新登录")
+                    return False
                 print(f"[SoulSync] Token invalid, re-authenticating: {e}")
                 token = None
 
         if not token:
-            email = self.config.get('email', '').strip()
-            password = self.config.get('password', '').strip()
-            
-            print("[SoulSync] No valid token, attempting auto-login...")
-            try:
-                result = self.client.authenticate(email, password)
-                if result:
-                    result['email'] = email
-                    result['password'] = password
-                    print("[SoulSync] Login successful! / 登录成功!")
-                    self._save_auth_to_config(result)
-                    token = self.client.token
-            except Exception as e:
-                error_msg = str(e)
-                
-                if "429" in error_msg or "too many" in error_msg.lower():
-                    print("\n[SoulSync] ========================================")
-                    print(f"[SoulSync] ❌ {e}")
-                    print("[SoulSync] Too many failed attempts. Please try again later / 登录失败次数过多，请稍后再试")
-                    print("[SoulSync] ========================================\n")
-                else:
-                    print("\n[SoulSync] ========================================")
-                    print(f"[SoulSync] ❌ {e}")
-                    print("[SoulSync] Please run 'openclaw soulsync:setup' to reconfigure / 请运行 'openclaw soulsync:setup' 重新配置")
-                    print("[SoulSync] ========================================\n")
-                
-                sys.exit(0)
-
+            print("[SoulSync] Token expired or invalid. Please re-configure using 'openclaw soulsync:setup'")
+            print("[SoulSync] Token 已过期，请重新运行 'openclaw soulsync:setup' 配置")
+            return False
+        
         email = self.config.get('email')
-        password = self.config.get('password')
-
+        
         try:
             profile = self.client.get_profile()
             print(f"\n[SoulSync] Logged in as: {profile.get('email')}")
             subscription = profile.get('subscription', {})
             print(f"[SoulSync] Subscription: {subscription.get('status')} (days remaining: {subscription.get('daysRemaining', 0)})\n")
         except Exception as e:
+            error_str = str(e)
+            if '401' in error_str or 'Unauthorized' in error_str or 'token' in error_str.lower():
+                print("[SoulSync] Token expired or invalid. Please re-login via chat: say 'login SoulSync'")
+                print("[SoulSync] Token 已过期，请在聊天中说 'login SoulSync' 重新登录")
+                return False
             print(f"[SoulSync] Warning: Could not get profile: {e}")
       
         # 版本管理器
@@ -481,9 +461,9 @@ def main():
         plugin.load_config()
         
         email = plugin.config.get('email', '').strip()
-        password = plugin.config.get('password', '').strip()
+        token = plugin.config.get('token', '').strip()
         
-        if not email or not password:
+        if not email or not token:
             print("\n[SoulSync] ========================================")
             print("[SoulSync] Not configured. Run 'openclaw soulsync:setup' first.")
             print("[SoulSync] 尚未配置，请先运行 'openclaw soulsync:setup'")

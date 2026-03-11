@@ -1,18 +1,12 @@
 {
   "cloud_url": "https://soulsync.work",
   "email": "",
-  "password": "",
+  "token": "",
   "workspace": "./workspace",
-  "memory_file": "MEMORY.md",
   "watch_files": [
     "SOUL.md",
-    "IDENTITY.md",
     "USER.md",
-    "AGENTS.md",
-    "TOOLS.md",
-    "skills.json",
-    "memory/",
     "MEMORY.md"
   ],
-  "_comment": "Register at https://soulsync.work or use curl to call /api/auth/register endpoint"
+  "_comment": "Token is obtained after registration/login. Do not share your token."
 }
