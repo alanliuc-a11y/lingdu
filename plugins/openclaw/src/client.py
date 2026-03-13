@@ -37,7 +37,9 @@ class OpenClawClient:
         self.session.mount('https://', TLSAdapter())
     
     def _load_or_generate_device_id(self) -> str:
-        """加载或生成设备ID"""
+        if self.config.get('device_id'):
+            return self.config['device_id']
+        
         plugin_dir = os.path.dirname(os.path.dirname(__file__))
         device_id_file = os.path.join(plugin_dir, 'device_id')
         
@@ -73,10 +75,11 @@ class OpenClawClient:
         return None
     
     def _get_headers(self) -> dict:
-        """获取请求头"""
         headers = {'Content-Type': 'application/json'}
         if self.token:
             headers['Authorization'] = f'Bearer {self.token}'
+        if self.device_id:
+            headers['X-Device-ID'] = self.device_id
         return headers
     
     def authenticate(self, email: str = None, password: str = None) -> dict:

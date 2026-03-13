@@ -3,6 +3,7 @@ const path = require('path');
 const fs = require('fs');
 const https = require('https');
 const http = require('http');
+const crypto = require('crypto');
 
 let pythonProcess = null;
 let config = null;
@@ -191,11 +192,22 @@ async function startDeviceCodeFlow() {
           clearInterval(deviceCodePolling);
           deviceCodePolling = null;
           
+          const deviceId = crypto.randomUUID();
           const pluginDir = getPluginDir();
           saveConfig(pluginDir, {
             email: 'device',
             token: pollResult.body.token,
+            device_id: deviceId,
+            device_name: 'Device',
             cloud_url: getCloudUrl(pluginDir)
+          });
+          
+          makeRequest('POST', '/api/devices', {
+            device_id: deviceId,
+            device_name: 'Device',
+            device_type: 'local'
+          }, pollResult.body.token).catch(err => {
+            console.error('[SoulSync] Failed to register device:', err.message);
           });
           
           startPythonService('--start');
@@ -355,13 +367,24 @@ module.exports = function register(api) {
     
     const pluginDir = getPluginDir();
     const configPath = path.join(pluginDir, 'config.json');
+    const cfg = loadConfig(pluginDir);
+    
+    if (cfg && cfg.device_id && cfg.token) {
+      try {
+        await makeRequest('DELETE', `/api/devices/${cfg.device_id}`, null, cfg.token);
+      } catch (e) {
+        console.error('[SoulSync] Failed to delete device:', e.message);
+      }
+    }
     
     try {
       if (fs.existsSync(configPath)) {
-        const cfg = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
-        delete cfg.token;
-        delete cfg.email;
-        fs.writeFileSync(configPath, JSON.stringify(cfg, null, 2));
+        const existing = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+        delete existing.token;
+        delete existing.email;
+        delete existing.device_id;
+        delete existing.device_name;
+        fs.writeFileSync(configPath, JSON.stringify(existing, null, 2));
       }
     } catch (e) {
       console.error('[SoulSync] Error clearing config:', e);
@@ -376,6 +399,74 @@ module.exports = function register(api) {
       success: true,
       message: 'SoulSync disconnected. Your local data is preserved. To reconnect, say "connect SoulSync".'
     };
+  });
+
+  api.registerTool({
+    name: 'soulsync_devices',
+    description: 'List all devices connected to your SoulSync account / 查看已连接设备列表',
+    schema: {
+      type: 'object',
+      properties: {},
+      required: []
+    },
+    async handler() {
+      const pluginDir = getPluginDir();
+      const cfg = loadConfig(pluginDir);
+      
+      if (!cfg || !cfg.token) {
+        return 'Not logged in / 未登录';
+      }
+      
+      try {
+        const result = await makeRequest('GET', '/api/devices', null, cfg.token);
+        if (result.response.statusCode === 200) {
+          const devices = result.body.devices || [];
+          if (devices.length === 0) {
+            return 'No devices found / 未找到设备';
+          }
+          const list = devices.map(d => 
+            `- ${d.device_name || 'Unnamed'} (${d.device_type || 'local'}) - Last sync: ${d.last_sync_at || 'Never'}`
+          ).join('\n');
+          return `Connected devices / 已连接设备:\n${list}`;
+        }
+        return 'Failed to get devices / 获取设备列表失败';
+      } catch (e) {
+        return `Error: ${e.message}`;
+      }
+    }
+  });
+
+  api.registerTool({
+    name: 'soulsync_rename_device',
+    description: 'Rename the current device / 重命名当前设备',
+    schema: {
+      type: 'object',
+      properties: {
+        name: { type: 'string', description: 'New device name / 新设备名称' }
+      },
+      required: ['name']
+    },
+    async handler({ name }) {
+      const pluginDir = getPluginDir();
+      const cfg = loadConfig(pluginDir);
+      
+      if (!cfg || !cfg.token || !cfg.device_id) {
+        return 'Not logged in / 未登录';
+      }
+      
+      try {
+        const result = await makeRequest('PUT', `/api/devices/${cfg.device_id}`, { device_name: name }, cfg.token);
+        if (result.response.statusCode === 200) {
+          const configPath = path.join(pluginDir, 'config.json');
+          cfg.device_name = name;
+          fs.writeFileSync(configPath, JSON.stringify(cfg, null, 2));
+          return `Device renamed to "${name}" / 设备已重命名为 "${name}"`;
+        }
+        return 'Failed to rename device / 重命名设备失败';
+      } catch (e) {
+        return `Error: ${e.message}`;
+      }
+    }
   });
 
   api.registerCli(
