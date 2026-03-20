@@ -65,14 +65,10 @@ soulsync/
 
 ## 快速开始
 
-### 1. 注册账号
-
-访问我们的官方网站（即将上线）注册账号。早期体验阶段所有功能免费。
-
-### 2. 安装 OpenClaw 插件
+### 1. 安装 OpenClaw 插件
 
 ```bash
-openclaw plugins install soulsync
+openclaw plugins install https://github.com/alanliuc-a11y/soulsync.git
 ```
 
 或从本地目录安装：
@@ -81,19 +77,47 @@ openclaw plugins install soulsync
 openclaw plugins install /path/to/soulsync/plugins/openclaw
 ```
 
-### 3. 配置插件
+### 2. 连接 SoulSync（对话式授权）
 
-编辑 `~/.openclaw/extensions/soulsync/config.json`：
+安装完成后，在 OpenClaw 聊天框中输入：
 
-```json
-{
-  "cloud_url": "https://soulsync.work",
-  "email": "your-email@example.com",
-  "password": "your-password"
-}
+```
+连接 SoulSync
 ```
 
-注意：cloud_url 指向官方 SoulSync 服务器。自托管将在对应阶段开源后可用。
+或：
+
+```
+/安装 小龙虾插件
+```
+
+Bot 会回复一个授权链接，点击链接在浏览器中完成登录/注册：
+- **已有账号**：直接登录
+- **新用户**：输入邮箱 → 收验证码 → 设置密码 → 注册成功
+
+授权成功后返回 OpenClaw，插件会自动开始同步你的灵魂文件。
+
+### 3. 查看已连接设备
+
+```
+查看我的 SoulSync 设备
+```
+
+### 4. 手动触发同步
+
+```
+同步 SoulSync
+```
+
+### 5. 退出登录（解绑当前设备）
+
+```
+退出 SoulSync
+```
+
+---
+
+**云端 Bot 用户注意**：云端部署的 OpenClaw 无法使用命令行安装插件，请使用对话式安装：直接在聊天框说"连接 SoulSync"即可。 SoulSync 服务器。自托管将在对应阶段开源后可用。
 
 ### 4. 启动插件
 

@@ -17,6 +17,62 @@ SoulSync is a **cross-bot soul synchronization system**. It allows your AI assis
 - **Multi-bot support** – Currently supports OpenClaw; more bots (CoPaw, etc.) coming soon.
 - **Progressive open source** – Backend code will be open-sourced after each major phase.
 
+### Quick Start
+
+#### 1. Install OpenClaw Plugin
+
+```bash
+openclaw plugins install https://github.com/alanliuc-a11y/soulsync.git
+```
+
+Or install from local directory:
+
+```bash
+openclaw plugins install /path/to/soulsync/plugins/openclaw
+```
+
+#### 2. Connect SoulSync (Conversational Auth)
+
+After installation, type in OpenClaw chat:
+
+```
+Connect SoulSync
+```
+
+Or:
+
+```
+/Install SoulSync plugin
+```
+
+The bot will reply with an authorization link. Click the link to complete login/register in your browser:
+- **Existing user**: Login directly
+- **New user**: Enter email → Receive verification code → Set password → Registration complete
+
+Return to OpenClaw after authorization, the plugin will automatically start syncing your soul files.
+
+#### 3. View Connected Devices
+
+```
+View my SoulSync devices
+```
+
+#### 4. Manual Sync
+
+```
+Sync SoulSync
+```
+
+#### 5. Logout (Unbind Current Device)
+
+```
+Logout SoulSync
+```
+
+---
+
+**Cloud Bot Users**: Cloud-deployed OpenClaw cannot use CLI to install plugins. Use conversational install: simply say "Connect SoulSync" in the chat box.
+
 ### Backend Service
 
 The backend service is officially hosted and maintained by the SoulSync team. Users only need to install the plugin and connect to the official cloud service.
