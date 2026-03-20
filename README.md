@@ -201,6 +201,62 @@ SoulSync 是一个**跨机器人灵魂同步系统**，让你的 AI 助理（如
 - **多机器人支持** – 目前已支持 OpenClaw，后续将支持 CoPaw 等更多机器人
 - **渐进式开源** – 后端代码将在每个大阶段完成后开源
 
+### 快速开始
+
+#### 1. 安装 OpenClaw 插件
+
+```bash
+openclaw plugins install https://github.com/alanliuc-a11y/soulsync.git
+```
+
+或从本地目录安装：
+
+```bash
+openclaw plugins install /path/to/soulsync/plugins/openclaw
+```
+
+#### 2. 连接 SoulSync（对话式授权）
+
+安装完成后，在 OpenClaw 聊天框中输入：
+
+```
+连接 SoulSync
+```
+
+或：
+
+```
+/安装 小龙虾插件
+```
+
+Bot 会回复一个授权链接，点击链接在浏览器中完成登录/注册：
+- **已有账号**：直接登录
+- **新用户**：输入邮箱 → 收验证码 → 设置密码 → 注册成功
+
+授权成功后返回 OpenClaw，插件会自动开始同步你的灵魂文件。
+
+#### 3. 查看已连接设备
+
+```
+查看我的 SoulSync 设备
+```
+
+#### 4. 手动触发同步
+
+```
+同步 SoulSync
+```
+
+#### 5. 退出登录（解绑当前设备）
+
+```
+退出 SoulSync
+```
+
+---
+
+**云端 Bot 用户注意**：云端部署的 OpenClaw 无法使用命令行安装插件，请使用对话式安装：直接在聊天框说"连接 SoulSync"即可。
+
 ### 后端服务
 
 后端服务由 SoulSync 团队官方托管和维护。用户只需安装插件，连接官方云服务即可。
