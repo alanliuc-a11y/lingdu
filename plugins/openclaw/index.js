@@ -419,7 +419,7 @@ module.exports = function register(api) {
       
       try {
         const result = await makeRequest('GET', '/api/devices', null, cfg.token);
-        if (result.response.statusCode === 200) {
+        if (result.status === 200) {
           const devices = result.body.devices || [];
           if (devices.length === 0) {
             return 'No devices found / 未找到设备';
@@ -456,7 +456,7 @@ module.exports = function register(api) {
       
       try {
         const result = await makeRequest('PUT', `/api/devices/${cfg.device_id}`, { device_name: name }, cfg.token);
-        if (result.response.statusCode === 200) {
+        if (result.status === 200) {
           const configPath = path.join(pluginDir, 'config.json');
           cfg.device_name = name;
           fs.writeFileSync(configPath, JSON.stringify(cfg, null, 2));
