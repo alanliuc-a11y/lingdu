@@ -1,6 +1,6 @@
 {
   "name": "soulsync",
-  "version": "1.0.12",
+  "version": "1.0.13",
   "description": "SoulSync plugin for OpenClaw - cross-bot memory synchronization",
   "main": "index.js",
   "repository": {
