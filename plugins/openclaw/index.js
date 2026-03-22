@@ -88,17 +88,18 @@ function detectAuthMode(api) {
 
 async function startOAuthLocal() {
   const { createOAuthServer } = require('./src/oauth-server');
-  const open = require('open');
-  
+
   try {
     const { server, port } = await createOAuthServer();
     const callbackUrl = `http://localhost:${port}/callback`;
     const state = crypto.randomBytes(16).toString('hex');
     const authUrl = `${getCloudUrl()}/auth/oauth/start?port=${port}&callback=${encodeURIComponent(callbackUrl)}&state=${state}`;
-    
+
     console.log('[SoulSync] Opening browser for authorization...');
+
+    const open = (await import('open')).default;
     await open(authUrl);
-    
+
     console.log('[SoulSync] Waiting for authorization...');
     
     const { token } = await new Promise((resolve, reject) => {
