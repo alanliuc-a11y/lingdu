@@ -352,33 +352,47 @@ async function startDeviceCodeFlow() {
 
 module.exports = function register(api) {
   console.log('[SoulSync] Registering plugin...');
-  
-  const mode = detectAuthMode(api);
-  console.log(`[SoulSync] Detected auth mode: ${mode}`);
-  
-  if (!isAuthenticated()) {
-    switch (mode) {
-      case 'oauth-local':
-        console.log('[SoulSync] Starting OAuth local flow...');
-        startOAuthLocal().then(result => {
-          if (result.success) registerChatTools(api);
+
+  registerChatTools(api);
+
+  api.registerCli(
+    ({ program }) => {
+      program
+        .command('soulsync:start')
+        .description('启动 SoulSync 同步服务')
+        .action(async () => {
+          if (!isAuthenticated()) {
+            console.log('[SoulSync] Not configured. Starting device authorization flow...');
+
+            const authMode = detectAuthMode(null);
+            let result;
+
+            if (authMode === 'oauth-local') {
+              result = await startOAuthLocal();
+            } else if (authMode === 'device-code-cli') {
+              result = await startDeviceCodeCLI();
+            } else {
+              result = await startDeviceCodeFlow();
+            }
+
+            if (result.success) {
+              console.log(result.message);
+            } else {
+              console.error(`[SoulSync] ${result.message}`);
+            }
+            return;
+          }
+
+          if (pythonProcess) {
+            console.log('[SoulSync] Service already running');
+            return;
+          }
+
+          startPythonService('--start');
         });
-        break;
-      case 'device-code-cli':
-        console.log('[SoulSync] Starting device code CLI flow...');
-        startDeviceCodeCLI().then(result => {
-          console.log('[SoulSync]', result.message);
-        });
-        break;
-      case 'device-code-chat':
-        console.log('[SoulSync] Waiting for user to say "connect SoulSync"...');
-        break;
-    }
-  } else {
-    console.log('[SoulSync] Already authenticated, starting sync...');
-    startPythonService('--start');
-    registerChatTools(api);
-  }
+    },
+    { commands: ['soulsync:start'] }
+  );
   
   function registerChatTools(api) {
     api.registerTool({
@@ -578,7 +592,6 @@ module.exports = function register(api) {
   if (isAuthenticated()) {
     console.log('[SoulSync] Auto-starting sync service...');
     startPythonService('--start');
-    registerChatTools(api);
   }
 
   console.log('[SoulSync] Plugin loaded. Run "openclaw soulsync:start" to begin.');
