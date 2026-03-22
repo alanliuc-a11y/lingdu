@@ -77,9 +77,10 @@ async function getUserGreeting(token, deviceName) {
 
 function detectAuthMode(api) {
   const hasChatAPI = api && typeof api.registerTool === 'function';
-  const isLocalTTY = process.stdin.isTTY && !process.env.SSH_CLIENT && !process.env.SSH_TTY;
-  const isSSH = process.env.SSH_CLIENT || process.env.SSH_TTY;
-  
+
+  const isSSH = process.env.SSH_CONNECTION || process.env.SSH_CLIENT || process.env.SSH_TTY;
+  const isLocalTTY = process.stdin.isTTY && !isSSH;
+
   if (!hasChatAPI && isLocalTTY) return 'oauth-local';
   if (!hasChatAPI && isSSH) return 'device-code-cli';
   return 'device-code-chat';
