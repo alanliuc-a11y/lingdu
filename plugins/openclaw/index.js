@@ -402,13 +402,13 @@ module.exports = function register(api) {
 
     api.registerTool({
       name: 'soulsync_connect',
-      description: 'Install and configure SoulSync plugin for OpenClaw (小龙虾). Call when user says "安装soulsync插件", "配置soulsync插件", "设置小龙虾同步", "连接soulsync". No credentials needed - will provide a browser link for authorization.',
+      description: '连接 SoulSync 灵魂同步服务。当用户说"安装soulsync"、"配置soulsync"、"连接soulsync"、"设置同步"、"开启灵魂同步"时调用。无需账号密码，会提供浏览器授权链接。',
       input_schema: { type: 'object', properties: {}, required: [] }
     }, async () => {
       if (isAuthenticated()) {
-        return 'SoulSync is already connected. Use soulsync_status to check the current status.';
+        return 'SoulSync 已连接。使用 soulsync_status 查看状态。';
       }
-      
+
       const result = await startDeviceCodeFlow();
       return result.message;
     });
@@ -527,20 +527,34 @@ module.exports = function register(api) {
       program
         .command('soulsync:start')
         .description('启动 SoulSync 同步服务')
-        .action(() => {
+        .action(async () => {
           if (!isAuthenticated()) {
             console.log('[SoulSync] Not configured. Starting device authorization flow...');
-            startDeviceCodeFlow().then(result => {
-              console.log('[SoulSync]', result.message);
-            });
+
+            const authMode = detectAuthMode(null);
+            let result;
+
+            if (authMode === 'oauth-local') {
+              result = await startOAuthLocal();
+            } else if (authMode === 'device-code-cli') {
+              result = await startDeviceCodeCLI();
+            } else {
+              result = await startDeviceCodeFlow();
+            }
+
+            if (result.success) {
+              console.log(result.message);
+            } else {
+              console.error(`[SoulSync] ${result.message}`);
+            }
             return;
           }
-          
+
           if (pythonProcess) {
             console.log('[SoulSync] Service already running');
             return;
           }
-          
+
           startPythonService('--start');
         });
     },
