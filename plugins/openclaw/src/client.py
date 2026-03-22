@@ -153,6 +153,22 @@ class OpenClawClient:
         else:
             error = response.json().get('error', 'Unknown error')
             raise Exception(f"Get profile failed: {error}")
+
+    def get_user_info(self) -> dict:
+        """获取当前登录用户信息
+        
+        Returns:
+            用户信息，包含 email, name, subscription_status
+        """
+        url = f"{self.cloud_url}/api/auth/user/info"
+        
+        response = self.session.get(url, headers=self._get_headers())
+        
+        if response.status_code == 200:
+            return response.json()
+        else:
+            error = response.json().get('error', 'Unknown error')
+            raise Exception(f"Get user info failed: {error}")
     
     def connect_websocket(self, on_message_callback):
         """连接 WebSocket

@@ -4,74 +4,27 @@ const fs = require('fs');
 const https = require('https');
 const http = require('http');
 const crypto = require('crypto');
+const os = require('os');
+
+const { getDeviceName, loadConfig, saveConfig, isAuthenticated } = require('./src/config');
 
 let pythonProcess = null;
-let config = null;
 let deviceCodePolling = null;
 
 function getPluginDir() {
   return path.dirname(__filename);
 }
 
-function loadConfig(pluginDir) {
-  const configPath = path.join(pluginDir, 'config.json');
-  try {
-    if (fs.existsSync(configPath)) {
-      return JSON.parse(fs.readFileSync(configPath, 'utf-8'));
-    }
-  } catch (e) {
-    console.error('[SoulSync] Error loading config:', e);
-  }
-  return null;
-}
-
-function checkConfigExists(pluginDir) {
-  const configPath = path.join(pluginDir, 'config.json');
-  if (!fs.existsSync(configPath)) {
-    const examplePath = path.join(pluginDir, 'config.json.example');
-    if (fs.existsSync(examplePath)) {
-      fs.copyFileSync(examplePath, configPath);
-      console.log('[SoulSync] Created config.json from template');
-    }
-    return false;
-  }
-  
-  config = loadConfig(pluginDir);
-  if (!config) return false;
-  
-  const email = (config.email || '').trim();
-  const token = config.token;
-  return email && token && email !== 'your-email@example.com';
-}
-
-function saveConfig(pluginDir, newConfig) {
-  const configPath = path.join(pluginDir, 'config.json');
-  try {
-    let existing = {};
-    if (fs.existsSync(configPath)) {
-      existing = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
-    }
-    const merged = { ...existing, ...newConfig };
-    fs.writeFileSync(configPath, JSON.stringify(merged, null, 2));
-    config = merged;
-    return true;
-  } catch (e) {
-    console.error('[SoulSync] Error saving config:', e);
-    return false;
-  }
-}
-
-function getCloudUrl(pluginDir) {
-  const cfg = loadConfig(pluginDir);
+function getCloudUrl() {
+  const cfg = loadConfig();
   return (cfg && cfg.cloud_url) || 'https://soulsync.work';
 }
 
 function makeRequest(method, urlPath, body = null, token = null) {
   return new Promise((resolve, reject) => {
-    const cloudUrl = getCloudUrl(getPluginDir());
+    const cloudUrl = getCloudUrl();
     const isHttps = cloudUrl.startsWith('https');
     const client = isHttps ? https : http;
-    
     const urlObj = new URL(cloudUrl + urlPath);
     
     const options = {
@@ -79,9 +32,7 @@ function makeRequest(method, urlPath, body = null, token = null) {
       port: urlObj.port || (isHttps ? 443 : 80),
       path: urlObj.pathname + urlObj.search,
       method: method,
-      headers: {
-        'Content-Type': 'application/json'
-      }
+      headers: { 'Content-Type': 'application/json' }
     };
     
     if (token) {
@@ -102,12 +53,178 @@ function makeRequest(method, urlPath, body = null, token = null) {
     });
     
     req.on('error', reject);
-    
-    if (body) {
-      req.write(JSON.stringify(body));
-    }
+    if (body) req.write(JSON.stringify(body));
     req.end();
   });
+}
+
+async function getUserGreeting(token, deviceName) {
+  let userName = '朋友';
+  try {
+    const userResult = await makeRequest('GET', '/api/auth/user/info', null, token);
+    if (userResult.status === 200 && userResult.body) {
+      if (userResult.body.name) {
+        userName = userResult.body.name;
+      } else if (userResult.body.email) {
+        userName = userResult.body.email.split('@')[0];
+      }
+    }
+  } catch (e) {
+    console.error('[SoulSync] Failed to get user info:', e.message);
+  }
+  return `${userName}你好，我是三澍，非常高兴能在 ${deviceName} 再次与你相遇。\n\n已同步: SOUL.md / USER.md / MEMORY.md`;
+}
+
+function detectAuthMode(api) {
+  const hasChatAPI = api && typeof api.registerTool === 'function';
+  const isLocalTTY = process.stdin.isTTY && !process.env.SSH_CLIENT && !process.env.SSH_TTY;
+  const isSSH = process.env.SSH_CLIENT || process.env.SSH_TTY;
+  
+  if (!hasChatAPI && isLocalTTY) return 'oauth-local';
+  if (!hasChatAPI && isSSH) return 'device-code-cli';
+  return 'device-code-chat';
+}
+
+async function startOAuthLocal() {
+  const { createOAuthServer } = require('./src/oauth-server');
+  const open = require('open');
+  
+  try {
+    const { server, port } = await createOAuthServer();
+    const callbackUrl = `http://localhost:${port}/callback`;
+    const state = crypto.randomBytes(16).toString('hex');
+    const authUrl = `${getCloudUrl()}/auth/oauth/start?port=${port}&callback=${encodeURIComponent(callbackUrl)}&state=${state}`;
+    
+    console.log('[SoulSync] Opening browser for authorization...');
+    await open(authUrl);
+    
+    console.log('[SoulSync] Waiting for authorization...');
+    
+    const { token } = await new Promise((resolve, reject) => {
+      server.on('close', () => reject(new Error('Server closed without receiving token')));
+    });
+    
+    const deviceId = crypto.randomUUID();
+    const deviceName = getDeviceName('local');
+    
+    saveConfig({
+      email: 'device',
+      token: token,
+      device_id: deviceId,
+      device_name: deviceName,
+      device_type: 'local',
+      cloud_url: getCloudUrl()
+    });
+    
+    await registerDevice(deviceId, deviceName, 'local', token);
+    startPythonService('--start');
+
+    const greeting = await getUserGreeting(token, deviceName);
+    return { success: true, message: greeting };
+  } catch (err) {
+    return { success: false, message: `OAuth Error: ${err.message}` };
+  }
+}
+
+async function startDeviceCodeCLI() {
+  try {
+    const result = await makeRequest('POST', '/api/auth/device-code', {});
+    
+    if (result.status !== 200 || !result.body.device_code) {
+      return { success: false, message: 'Failed to start device authorization.' };
+    }
+    
+    const { device_code, auth_url } = result.body;
+    
+    const homeDir = os.homedir();
+    const pendingDir = path.join(homeDir, '.soulsync');
+    if (!fs.existsSync(pendingDir)) {
+      fs.mkdirSync(pendingDir, { recursive: true });
+    }
+    fs.writeFileSync(path.join(pendingDir, '.pending_auth'), JSON.stringify({
+      deviceCode: device_code,
+      authUrl: auth_url,
+      timestamp: Date.now()
+    }));
+    
+    console.log('[SoulSync] Please visit the following URL to authorize:');
+    console.log(`  ${auth_url}`);
+    console.log('[SoulSync] Or say "connect SoulSync" in chat to continue...');
+    
+    const token = await waitForAuthCompletion(device_code);
+    
+    const deviceId = crypto.randomUUID();
+    const deviceName = getDeviceName('ssh');
+    
+    saveConfig({
+      email: 'device',
+      token: token,
+      device_id: deviceId,
+      device_name: deviceName,
+      device_type: 'ssh',
+      cloud_url: getCloudUrl()
+    });
+    
+    registerDevice(deviceId, deviceName, 'ssh', token);
+    startPythonService('--start');
+
+    const greeting = await getUserGreeting(token, deviceName);
+    return { success: true, message: greeting };
+  } catch (err) {
+    return { success: false, message: `Error: ${err.message}` };
+  }
+}
+
+async function waitForAuthCompletion(device_code) {
+  return new Promise((resolve, reject) => {
+    const timeout = setTimeout(() => {
+      if (deviceCodePolling) {
+        clearInterval(deviceCodePolling);
+        deviceCodePolling = null;
+      }
+      reject(new Error('Authorization timeout'));
+    }, 900000);
+    
+    deviceCodePolling = setInterval(async () => {
+      try {
+        const pollResult = await makeRequest('GET', `/api/auth/device-code/${device_code}/status`);
+        
+        if (pollResult.body.status === 'authorized' && pollResult.body.token) {
+          clearInterval(deviceCodePolling);
+          deviceCodePolling = null;
+          clearTimeout(timeout);
+          resolve(pollResult.body.token);
+        } else if (pollResult.body.status === 'expired') {
+          clearInterval(deviceCodePolling);
+          deviceCodePolling = null;
+          clearTimeout(timeout);
+          reject(new Error('Authorization expired'));
+        } else if (pollResult.body.status === 'not_found') {
+          clearInterval(deviceCodePolling);
+          deviceCodePolling = null;
+          clearTimeout(timeout);
+          reject(new Error('Device code not found'));
+        }
+      } catch (e) {
+        clearInterval(deviceCodePolling);
+        deviceCodePolling = null;
+        clearTimeout(timeout);
+        reject(e);
+      }
+    }, 3000);
+  });
+}
+
+async function registerDevice(deviceId, deviceName, deviceType, token) {
+  try {
+    await makeRequest('POST', '/api/devices', {
+      device_id: deviceId,
+      device_name: deviceName,
+      device_type: deviceType
+    }, token);
+  } catch (e) {
+    console.error('[SoulSync] Failed to register device:', e.message);
+  }
 }
 
 function startPythonService(mode = '--start') {
@@ -117,16 +234,17 @@ function startPythonService(mode = '--start') {
   
   console.log(`[SoulSync] Starting Python service (${mode})...`);
   
+  if (pythonProcess) {
+    pythonProcess.kill();
+    pythonProcess = null;
+  }
+  
   pythonProcess = spawn(pythonPath, [pythonScript, mode], {
     cwd: pluginDir,
-    env: {
-      ...process.env,
-      OPENCLAW_PLUGIN: 'true',
-      PLUGIN_DIR: pluginDir
-    },
+    env: { ...process.env, OPENCLAW_PLUGIN: 'true', PLUGIN_DIR: pluginDir },
     stdio: 'inherit'
   });
-
+  
   pythonProcess.on('close', (code) => {
     console.log(`[SoulSync] Python process exited with code ${code}`);
     pythonProcess = null;
@@ -136,8 +254,6 @@ function startPythonService(mode = '--start') {
     console.error(`[SoulSync] Failed to start Python process: ${err}`);
     pythonProcess = null;
   });
-  
-  return pythonProcess;
 }
 
 function stopPythonService() {
@@ -149,26 +265,18 @@ function stopPythonService() {
 }
 
 function checkConnection() {
-  const pluginDir = getPluginDir();
-  const cfg = loadConfig(pluginDir);
-  
+  const cfg = loadConfig();
   if (!cfg || !cfg.token) {
-    return { connected: false, reason: 'not_configured' };
+    return Promise.resolve({ connected: false, reason: 'not_configured' });
   }
   
   return makeRequest('GET', '/api/profiles', null, cfg.token)
     .then(result => {
-      if (result.status === 200) {
-        return { connected: true, data: result.body };
-      } else if (result.status === 401) {
-        return { connected: false, reason: 'token_expired' };
-      } else {
-        return { connected: false, reason: 'server_error', status: result.status };
-      }
+      if (result.status === 200) return { connected: true, data: result.body };
+      if (result.status === 401) return { connected: false, reason: 'token_expired' };
+      return { connected: false, reason: 'server_error', status: result.status };
     })
-    .catch(err => {
-      return { connected: false, reason: 'connection_error', error: err.message };
-    });
+    .catch(err => ({ connected: false, reason: 'connection_error', error: err.message }));
 }
 
 async function startDeviceCodeFlow() {
@@ -176,243 +284,192 @@ async function startDeviceCodeFlow() {
     const result = await makeRequest('POST', '/api/auth/device-code', {});
     
     if (result.status !== 200 || !result.body.device_code) {
-      return {
-        success: false,
-        message: 'Failed to start device authorization. Please try again.'
-      };
+      return { success: false, message: 'Failed to start device authorization.' };
     }
     
     const { device_code, auth_url, expires_in } = result.body;
     
-    deviceCodePolling = setInterval(async () => {
-      try {
-        const pollResult = await makeRequest('GET', `/api/auth/device-code/${device_code}/status`);
-        
-        if (pollResult.body.status === 'authorized' && pollResult.body.token) {
+    const token = await new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        if (deviceCodePolling) {
           clearInterval(deviceCodePolling);
           deviceCodePolling = null;
-          
-          const deviceId = crypto.randomUUID();
-          const pluginDir = getPluginDir();
-          saveConfig(pluginDir, {
-            email: 'device',
-            token: pollResult.body.token,
-            device_id: deviceId,
-            device_name: 'Device',
-            cloud_url: getCloudUrl(pluginDir)
-          });
-          
-          makeRequest('POST', '/api/devices', {
-            device_id: deviceId,
-            device_name: 'Device',
-            device_type: 'local'
-          }, pollResult.body.token).catch(err => {
-            console.error('[SoulSync] Failed to register device:', err.message);
-          });
-          
-          startPythonService('--start');
-          
-          console.log('[SoulSync] Authorization successful! Syncing started.');
-        } else if (pollResult.body.status === 'expired') {
-          clearInterval(deviceCodePolling);
-          deviceCodePolling = null;
-          console.log('[SoulSync] Authorization expired. Please try again.');
-        } else if (pollResult.body.status === 'not_found') {
-          clearInterval(deviceCodePolling);
-          deviceCodePolling = null;
-          console.log('[SoulSync] Device code not found. Please try again.');
         }
-      } catch (e) {
-        console.error('[SoulSync] Polling error:', e);
-      }
-    }, 3000);
+        reject(new Error('Authorization timeout'));
+      }, expires_in * 1000);
+      
+      deviceCodePolling = setInterval(async () => {
+        try {
+          const pollResult = await makeRequest('GET', `/api/auth/device-code/${device_code}/status`);
+          
+          if (pollResult.body.status === 'authorized' && pollResult.body.token) {
+            clearInterval(deviceCodePolling);
+            deviceCodePolling = null;
+            clearTimeout(timeout);
+            resolve(pollResult.body.token);
+          } else if (pollResult.body.status === 'expired') {
+            clearInterval(deviceCodePolling);
+            deviceCodePolling = null;
+            clearTimeout(timeout);
+            reject(new Error('Authorization expired'));
+          } else if (pollResult.body.status === 'not_found') {
+            clearInterval(deviceCodePolling);
+            deviceCodePolling = null;
+            clearTimeout(timeout);
+            reject(new Error('Device code not found'));
+          }
+        } catch (e) {
+          clearInterval(deviceCodePolling);
+          deviceCodePolling = null;
+          clearTimeout(timeout);
+          reject(e);
+        }
+      }, 3000);
+    });
     
-    setTimeout(() => {
-      if (deviceCodePolling) {
-        clearInterval(deviceCodePolling);
-        deviceCodePolling = null;
-      }
-    }, expires_in * 1000);
+    const deviceId = crypto.randomUUID();
+    const deviceName = getDeviceName('cloud');
     
-    return {
-      success: true,
-      message: `Please open ${auth_url} in your browser to complete authorization. This page will expire in ${Math.floor(expires_in / 60)} minutes.`
-    };
+    saveConfig({
+      email: 'device',
+      token: token,
+      device_id: deviceId,
+      device_name: deviceName,
+      device_type: 'cloud',
+      cloud_url: getCloudUrl()
+    });
+    
+    registerDevice(deviceId, deviceName, 'cloud', token);
+    startPythonService('--start');
+
+    const greeting = await getUserGreeting(token, deviceName);
+    return { success: true, message: greeting };
   } catch (err) {
-    return {
-      success: false,
-      message: `Error: ${err.message}`
-    };
+    return { success: false, message: `Error: ${err.message}` };
   }
 }
 
 module.exports = function register(api) {
   console.log('[SoulSync] Registering plugin...');
-
-  api.registerTool({
-    name: 'soulsync_status',
-    description: 'Check SoulSync plugin status for OpenClaw (小龙虾). Call when user mentions SoulSync, soul sync, 灵魂同步, OpenClaw plugin, 小龙虾插件, or asks about sync status.',
-    input_schema: {
-      type: 'object',
-      properties: {},
-      required: []
+  
+  const mode = detectAuthMode(api);
+  console.log(`[SoulSync] Detected auth mode: ${mode}`);
+  
+  if (!isAuthenticated()) {
+    switch (mode) {
+      case 'oauth-local':
+        console.log('[SoulSync] Starting OAuth local flow...');
+        startOAuthLocal().then(result => {
+          if (result.success) registerChatTools(api);
+        });
+        break;
+      case 'device-code-cli':
+        console.log('[SoulSync] Starting device code CLI flow...');
+        startDeviceCodeCLI().then(result => {
+          console.log('[SoulSync]', result.message);
+        });
+        break;
+      case 'device-code-chat':
+        console.log('[SoulSync] Waiting for user to say "connect SoulSync"...');
+        break;
     }
-  }, async () => {
-    const pluginDir = getPluginDir();
-    const cfg = loadConfig(pluginDir);
-    
-    if (!cfg || !cfg.token) {
-      return {
-        configured: false,
-        message: 'SoulSync is not configured. Would you like to connect your SoulSync account?'
-      };
-    }
-    
-    const conn = await checkConnection();
-    
-    if (conn.connected) {
-      return {
-        configured: true,
-        connected: true,
-        email: cfg.email,
-        message: `SoulSync is connected and syncing for ${cfg.email}.`
-      };
-    } else if (conn.reason === 'token_expired') {
-      return {
-        configured: true,
-        connected: false,
-        message: 'SoulSync token has expired. Would you like to reconnect your account?'
-      };
-    } else {
-      return {
-        configured: true,
-        connected: false,
-        message: `SoulSync is configured but cannot connect to server: ${conn.reason}`
-      };
-    }
-  });
-
-  api.registerTool({
-    name: 'soulsync_sync',
-    description: 'Manually trigger SoulSync OpenClaw plugin (小龙虾插件) to sync soul files (SOUL.md, USER.md, MEMORY.md) between local and cloud.',
-    input_schema: {
-      type: 'object',
-      properties: {},
-      required: []
-    }
-  }, async () => {
-    const pluginDir = getPluginDir();
-    const cfg = loadConfig(pluginDir);
-    
-    if (!cfg || !cfg.token) {
-      return {
-        success: false,
-        message: 'SoulSync is not configured. Would you like to connect your SoulSync account?'
-      };
-    }
-    
-    const conn = await checkConnection();
-    
-    if (!conn.connected) {
-      return {
-        success: false,
-        message: `Cannot sync: ${conn.reason}. Please check your connection.`
-      };
-    }
-    
-    if (pythonProcess) {
-      return {
-        success: true,
-        message: 'Sync is already running in the background.'
-      };
-    }
-    
+  } else {
+    console.log('[SoulSync] Already authenticated, starting sync...');
     startPythonService('--start');
-    
-    return {
-      success: true,
-      message: 'Sync started. Your soul files are being synchronized.'
-    };
-  });
-
-  api.registerTool({
-    name: 'soulsync_connect',
-    description: 'Connect SoulSync account using device authorization flow. User will be given a URL to open in browser to complete login/registration. Call when user wants to register, login, connect, or setup SoulSync.',
-    input_schema: {
-      type: 'object',
-      properties: {},
-      required: []
-    }
-  }, async () => {
-    if (deviceCodePolling) {
-      return {
-        success: false,
-        message: 'Authorization in progress. Please check your browser and complete the authorization.'
-      };
-    }
-    
-    return await startDeviceCodeFlow();
-  });
-
-  api.registerTool({
-    name: 'soulsync_logout',
-    description: 'Disconnect SoulSync account and stop sync service. This will remove local authentication token.',
-    input_schema: {
-      type: 'object',
-      properties: {},
-      required: []
-    }
-  }, async () => {
-    stopPythonService();
-    
-    const pluginDir = getPluginDir();
-    const configPath = path.join(pluginDir, 'config.json');
-    const cfg = loadConfig(pluginDir);
-    
-    if (cfg && cfg.device_id && cfg.token) {
-      try {
-        await makeRequest('DELETE', `/api/devices/${cfg.device_id}`, null, cfg.token);
-      } catch (e) {
-        console.error('[SoulSync] Failed to delete device:', e.message);
+    registerChatTools(api);
+  }
+  
+  function registerChatTools(api) {
+    api.registerTool({
+      name: 'soulsync_status',
+      description: 'Check SoulSync plugin status for OpenClaw (小龙虾). Call when user mentions SoulSync, soul sync, 灵魂同步, OpenClaw plugin, 小龙虾插件, or asks about sync status.',
+      input_schema: { type: 'object', properties: {}, required: [] }
+    }, async () => {
+      const cfg = loadConfig();
+      if (!cfg || !cfg.token) {
+        return { configured: false, message: 'SoulSync is not configured. Would you like to connect your SoulSync account?' };
       }
-    }
-    
-    try {
-      if (fs.existsSync(configPath)) {
-        const existing = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
-        delete existing.token;
-        delete existing.email;
-        delete existing.device_id;
-        delete existing.device_name;
-        fs.writeFileSync(configPath, JSON.stringify(existing, null, 2));
-      }
-    } catch (e) {
-      console.error('[SoulSync] Error clearing config:', e);
-    }
-    
-    if (deviceCodePolling) {
-      clearInterval(deviceCodePolling);
-      deviceCodePolling = null;
-    }
-    
-    return {
-      success: true,
-      message: 'SoulSync disconnected. Your local data is preserved. To reconnect, say "connect SoulSync".'
-    };
-  });
-
-  api.registerTool({
-    name: 'soulsync_devices',
-    description: 'List all devices connected to your SoulSync account / 查看已连接设备列表',
-    schema: {
-      type: 'object',
-      properties: {},
-      required: []
-    },
-    async handler() {
-      const pluginDir = getPluginDir();
-      const cfg = loadConfig(pluginDir);
       
+      const conn = await checkConnection();
+      if (conn.connected) {
+        return { configured: true, connected: true, email: cfg.email, message: `SoulSync is connected and syncing for ${cfg.email}.` };
+      } else if (conn.reason === 'token_expired') {
+        return { configured: true, connected: false, message: 'SoulSync token has expired. Would you like to reconnect your account?' };
+      } else {
+        return { configured: true, connected: false, message: `SoulSync is configured but cannot connect to server: ${conn.reason}` };
+      }
+    });
+
+    api.registerTool({
+      name: 'soulsync_connect',
+      description: 'Install and configure SoulSync plugin for OpenClaw (小龙虾). Call when user says "安装soulsync插件", "配置soulsync插件", "设置小龙虾同步", "连接soulsync". No credentials needed - will provide a browser link for authorization.',
+      input_schema: { type: 'object', properties: {}, required: [] }
+    }, async () => {
+      if (isAuthenticated()) {
+        return 'SoulSync is already connected. Use soulsync_status to check the current status.';
+      }
+      
+      const result = await startDeviceCodeFlow();
+      return result.message;
+    });
+
+    api.registerTool({
+      name: 'soulsync_sync',
+      description: 'Manually trigger SoulSync sync. Call when user says "同步soulsync", "手动同步", "强制同步", or wants to force sync.',
+      input_schema: { type: 'object', properties: {}, required: [] }
+    }, async () => {
+      const cfg = loadConfig();
+      if (!cfg || !cfg.token) {
+        return 'SoulSync is not configured. Please connect first.';
+      }
+      
+      if (!pythonProcess) {
+        startPythonService('--sync');
+        return 'Sync triggered.';
+      }
+      return 'Sync already in progress.';
+    });
+
+    api.registerTool({
+      name: 'soulsync_logout',
+      description: 'Logout and unbind device from SoulSync. Call when user says "退出soulsync", "解绑设备", "断开soulsync连接".',
+      input_schema: { type: 'object', properties: {}, required: [] }
+    }, async () => {
+      stopPythonService();
+      
+      const cfg = loadConfig();
+      if (cfg && cfg.device_id && cfg.token) {
+        try {
+          await makeRequest('DELETE', `/api/devices/${cfg.device_id}`, null, cfg.token);
+        } catch (e) {
+          console.error('[SoulSync] Failed to delete device:', e.message);
+        }
+      }
+      
+      try {
+        const pluginDir = getPluginDir();
+        const configPath = path.join(pluginDir, 'config.json');
+        if (fs.existsSync(configPath)) {
+          const existing = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+          delete existing.token;
+          delete existing.email;
+          delete existing.device_id;
+          delete existing.device_name;
+          fs.writeFileSync(configPath, JSON.stringify(existing, null, 2));
+        }
+      } catch (e) {
+        console.error('[SoulSync] Error clearing config:', e);
+      }
+      
+      return 'Logged out successfully. Your local data is preserved. To reconnect, say "connect SoulSync".';
+    });
+
+    api.registerTool({
+      name: 'soulsync_devices',
+      description: 'List connected SoulSync devices. Call when user says "查看soulsync设备", "我的设备列表", "已连接设备", or asks about connected devices.',
+      input_schema: { type: 'object', properties: {}, required: [] }
+    }, async () => {
+      const cfg = loadConfig();
       if (!cfg || !cfg.token) {
         return 'Not logged in / 未登录';
       }
@@ -421,9 +478,7 @@ module.exports = function register(api) {
         const result = await makeRequest('GET', '/api/devices', null, cfg.token);
         if (result.status === 200) {
           const devices = result.body.devices || [];
-          if (devices.length === 0) {
-            return 'No devices found / 未找到设备';
-          }
+          if (devices.length === 0) return 'No devices found / 未找到设备';
           const list = devices.map(d => 
             `- ${d.device_name || 'Unnamed'} (${d.device_type || 'local'}) - Last sync: ${d.last_sync_at || 'Never'}`
           ).join('\n');
@@ -433,23 +488,20 @@ module.exports = function register(api) {
       } catch (e) {
         return `Error: ${e.message}`;
       }
-    }
-  });
+    });
 
-  api.registerTool({
-    name: 'soulsync_rename_device',
-    description: 'Rename the current device / 重命名当前设备',
-    schema: {
-      type: 'object',
-      properties: {
-        name: { type: 'string', description: 'New device name / 新设备名称' }
-      },
-      required: ['name']
-    },
-    async handler({ name }) {
-      const pluginDir = getPluginDir();
-      const cfg = loadConfig(pluginDir);
-      
+    api.registerTool({
+      name: 'soulsync_rename_device',
+      description: 'Rename current SoulSync device. Call when user says "重命名设备", "修改设备名称".',
+      input_schema: {
+        type: 'object',
+        properties: {
+          name: { type: 'string', description: 'New device name / 新设备名称' }
+        },
+        required: ['name']
+      }
+    }, async ({ name }) => {
+      const cfg = loadConfig();
       if (!cfg || !cfg.token || !cfg.device_id) {
         return 'Not logged in / 未登录';
       }
@@ -457,6 +509,7 @@ module.exports = function register(api) {
       try {
         const result = await makeRequest('PUT', `/api/devices/${cfg.device_id}`, { device_name: name }, cfg.token);
         if (result.status === 200) {
+          const pluginDir = getPluginDir();
           const configPath = path.join(pluginDir, 'config.json');
           cfg.device_name = name;
           fs.writeFileSync(configPath, JSON.stringify(cfg, null, 2));
@@ -466,18 +519,16 @@ module.exports = function register(api) {
       } catch (e) {
         return `Error: ${e.message}`;
       }
-    }
-  });
-
+    });
+  }
+  
   api.registerCli(
     ({ program }) => {
       program
         .command('soulsync:start')
         .description('启动 SoulSync 同步服务')
         .action(() => {
-          const pluginDir = getPluginDir();
-          
-          if (!checkConfigExists(pluginDir)) {
+          if (!isAuthenticated()) {
             console.log('[SoulSync] Not configured. Starting device authorization flow...');
             startDeviceCodeFlow().then(result => {
               console.log('[SoulSync]', result.message);
@@ -509,10 +560,10 @@ module.exports = function register(api) {
     { commands: ['soulsync:stop'] }
   );
 
-  const pluginDir = getPluginDir();
-  if (checkConfigExists(pluginDir)) {
+  if (isAuthenticated()) {
     console.log('[SoulSync] Auto-starting sync service...');
     startPythonService('--start');
+    registerChatTools(api);
   }
 
   console.log('[SoulSync] Plugin loaded. Run "openclaw soulsync:start" to begin.');
