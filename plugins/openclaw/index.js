@@ -5,6 +5,7 @@ const https = require('https');
 const http = require('http');
 const crypto = require('crypto');
 const os = require('os');
+const { createRequire } = require('module');
 
 const { getDeviceName, loadConfig, saveConfig, isAuthenticated } = require('./src/config');
 
@@ -97,7 +98,9 @@ async function startOAuthLocal() {
 
     console.log('[SoulSync] Opening browser for authorization...');
 
-    const open = (await import('open')).default;
+    const require2 = createRequire(__filename);
+    const openPath = require2.resolve('open');
+    const open = (await import(openPath)).default;
     await open(authUrl);
 
     console.log('[SoulSync] Waiting for authorization...');
