@@ -91,7 +91,7 @@ async function startOAuthLocal() {
   const { createOAuthServer } = require('./src/oauth-server');
 
   try {
-    const { server, port } = await createOAuthServer();
+    const { server, port, waitForToken } = await createOAuthServer();
     const callbackUrl = `http://localhost:${port}/callback`;
     const state = crypto.randomBytes(16).toString('hex');
     const authUrl = `${getCloudUrl()}/auth/oauth/start?port=${port}&callback=${encodeURIComponent(callbackUrl)}&state=${state}`;
@@ -104,10 +104,8 @@ async function startOAuthLocal() {
     await open(authUrl);
 
     console.log('[SoulSync] Waiting for authorization...');
-    
-    const { token } = await new Promise((resolve, reject) => {
-      server.on('close', () => reject(new Error('Server closed without receiving token')));
-    });
+
+    const { token } = await waitForToken();
     
     const deviceId = crypto.randomUUID();
     const deviceName = getDeviceName('local');
