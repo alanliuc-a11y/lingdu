@@ -5,15 +5,15 @@ const os = require('os');
 let config = null;
 
 function getPluginDir() {
-  return path.dirname(__filename);
+  return path.dirname(path.dirname(__filename));
 }
 
 function loadConfig() {
   if (config) return config;
-  
-  const pluginDir = path.dirname(__filename);
+
+  const pluginDir = getPluginDir();
   const configPath = path.join(pluginDir, 'config.json');
-  
+
   try {
     if (fs.existsSync(configPath)) {
       config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
@@ -26,9 +26,9 @@ function loadConfig() {
 }
 
 function saveConfig(newConfig) {
-  const pluginDir = path.dirname(__filename);
+  const pluginDir = getPluginDir();
   const configPath = path.join(pluginDir, 'config.json');
-  
+
   try {
     let existing = {};
     if (fs.existsSync(configPath)) {
@@ -44,9 +44,9 @@ function saveConfig(newConfig) {
 }
 
 function clearConfig() {
-  const pluginDir = path.dirname(__filename);
+  const pluginDir = getPluginDir();
   const configPath = path.join(pluginDir, 'config.json');
-  
+
   try {
     if (fs.existsSync(configPath)) {
       const existing = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
