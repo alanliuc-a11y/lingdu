@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       id-token: write
-      contents: read
+      contents: write
 
     steps:
       - name: Checkout code
@@ -31,3 +31,19 @@ jobs:
         working-directory: plugins/openclaw
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          generate_release_notes: true
+          body: |
+            ## 📦 SoulSync ${{ github.ref_name }}
+            
+            已发布到 npm: https://www.npmjs.com/package/soulsync
+            
+            ### 安装
+            ```bash
+            npm install -g soulsync
+            ```
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
