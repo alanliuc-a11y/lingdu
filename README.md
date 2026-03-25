@@ -296,18 +296,16 @@ AI assistant remembers on all devices:
 - [ ] Soul file version control
 
 #### 🔮 Phase 2: "Queen Bee"
-- Multi-bot soul synchronization
-- Smart device support
-- Soul avatar system
-- Developer API & SDK
+- Coming soon...
 
 #### 🚀 Phase 3: "Singularity"
-- Pet behavior & personality sync
-- Multi-modal AI analysis
-- Emotional computing
+- Coming soon...
 
-#### 🌌 Phase 4 & Beyond
-- Stay tuned for more...
+#### 🌌 Phase 4: "Fusion"
+- Coming soon...
+
+#### 🌠 Phase 5: "Evolution"
+- Coming soon...
 
 ---
 
@@ -331,19 +329,24 @@ MIT License - See [LICENSE](LICENSE)
 ### 💰 Pricing
 
 #### Free Plan (Forever Free)
-- ✅ 3 devices sync
-- ✅ Basic soul files (SOUL.md, USER.md, MEMORY.md)
+- ✅ Synced files: SOUL.md, USER.md, MEMORY.md
+- ✅ Storage: 100 KB
 - ✅ Real-time sync
 - ✅ Local encrypted storage
 - ✅ Community support
 
-#### Pro Plan ($9.9/month, launching after Phase 2)
-- ✅ Unlimited devices
-- ✅ Advanced soul files (custom fields)
-- ✅ Team collaboration (up to 5 people)
+#### Basic Plan ($1.99/month, launching after Phase 2)
+- ✅ Synced files: + IDENTITY.md, TOOLS.md
+- ✅ Storage: 200 MB
 - ✅ Priority support
 - ✅ Data export
+
+#### Premium Plan ($4.99/month, launching after Phase 2)
+- ✅ Synced files: + AGENTS.md, skills.json, memory/
+- ✅ Storage: 10 GB
+- ✅ Team collaboration (up to 5 people)
 - ✅ Soul avatar management
+- ✅ Advanced features
 
 **Note**: All features currently free. Early users will enjoy permanent discounts when paid features launch.
 
@@ -655,17 +658,15 @@ AI 助手在所有设备上都记得你的：
 - [ ] 灵魂文件版本控制
 
 #### 🔮 第二阶段："蜂后"
-- 多 Bot 灵魂同步
-- 智能设备支持
-- 灵魂分身系统
-- 开发者 API & SDK
+- 敬请期待...
 
 #### 🚀 第三阶段："奇点"
-- 宠物行为与个性同步
-- 多模态 AI 分析
-- 情感计算
+- 敬请期待...
 
-#### 🌌 第四阶段及以后
+#### 🌌 第四阶段："融合"
+- 敬请期待...
+
+#### 🌠 第五阶段："进化"
 - 敬请期待...
 
 ---
@@ -690,18 +691,26 @@ MIT License - 详见 [LICENSE](LICENSE)
 ### 💰 定价
 
 #### 免费版（永久免费）
-- ✅ 3 台设备同步
-- ✅ 基础灵魂文件（SOUL.md, USER.md, MEMORY.md）
+- ✅ 同步文件：SOUL.md, USER.md, MEMORY.md
+- ✅ 存储空间：100 KB
 - ✅ 实时同步
 - ✅ 本地加密存储
 - ✅ 社区支持
 
-#### 专业版（$9.9/月，第二阶段后推出）
-- ✅ 无限设备
-- ✅ 高级灵魂文件（自定义字段）
-- ✅ 团队协作（最多 5 人）
+#### 初级版（¥4.9/月，第二阶段后推出）
+- ✅ 同步文件：+ IDENTITY.md, TOOLS.md
+- ✅ 存储空间：200 MB
 - ✅ 优先支持
 - ✅ 数据导出
+
+#### 高级版（¥12.9/月，第二阶段后推出）
+- ✅ 同步文件：+ AGENTS.md, skills.json, memory/
+- ✅ 存储空间：10 GB
+- ✅ 团队协作（最多 5 人）
+- ✅ 灵魂分身管理
+- ✅ 高级功能
+
+**注**：当前所有功能免费开放。早期用户在付费功能推出时将享受永久折扣。
 - ✅ 灵魂分身管理
 
 **注**：当前所有功能免费开放。早期用户在付费功能推出时将享受永久折扣。
