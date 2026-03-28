@@ -7,14 +7,10 @@ const crypto = require('crypto');
 const os = require('os');
 const { createRequire } = require('module');
 
-const { getDeviceName, loadConfig, saveConfig, isAuthenticated } = require('./src/config');
+const { getDeviceName, loadConfig, saveConfig, isAuthenticated, getPluginDir } = require('./src/config');
 
-let pythonProcess = null;
+let nodeProcess = null;
 let deviceCodePolling = null;
-
-function getPluginDir() {
-  return path.dirname(__filename);
-}
 
 function getCloudUrl() {
   const cfg = loadConfig();
@@ -120,7 +116,7 @@ async function startOAuthLocal() {
     });
     
     await registerDevice(deviceId, deviceName, 'local', token);
-    startPythonService('--start');
+    startNodeService('--start');
 
     const greeting = await getUserGreeting(token, deviceName);
     return { success: true, message: greeting };
@@ -169,7 +165,7 @@ async function startDeviceCodeCLI() {
     });
     
     registerDevice(deviceId, deviceName, 'ssh', token);
-    startPythonService('--start');
+    startNodeService('--start');
 
     const greeting = await getUserGreeting(token, deviceName);
     return { success: true, message: greeting };
@@ -230,40 +226,42 @@ async function registerDevice(deviceId, deviceName, deviceType, token) {
   }
 }
 
-function startPythonService(mode = '--start') {
+function startNodeService(mode = '--start') {
   const pluginDir = getPluginDir();
-  const pythonScript = path.join(pluginDir, 'src', 'main.py');
-  const pythonPath = process.env.PYTHON_PATH || 'python3';
-  
-  console.log(`[SoulSync] Starting Python service (${mode})...`);
-  
-  if (pythonProcess) {
-    pythonProcess.kill();
-    pythonProcess = null;
+  const daemonScript = path.join(pluginDir, 'src', 'daemon.js');
+
+  console.log(`[SoulSync] Starting Node.js sync service (${mode})...`);
+
+  if (nodeProcess) {
+    nodeProcess.kill();
+    nodeProcess = null;
   }
-  
-  pythonProcess = spawn(pythonPath, [pythonScript, mode], {
+
+  nodeProcess = spawn('node', [daemonScript, mode], {
     cwd: pluginDir,
     env: { ...process.env, OPENCLAW_PLUGIN: 'true', PLUGIN_DIR: pluginDir },
-    stdio: 'inherit'
+    stdio: 'ignore',
+    detached: true
   });
-  
-  pythonProcess.on('close', (code) => {
-    console.log(`[SoulSync] Python process exited with code ${code}`);
-    pythonProcess = null;
+
+  nodeProcess.on('close', (code) => {
+    console.log(`[SoulSync] Node.js process exited with code ${code}`);
+    nodeProcess = null;
   });
-  
-  pythonProcess.on('error', (err) => {
-    console.error(`[SoulSync] Failed to start Python process: ${err}`);
-    pythonProcess = null;
+
+  nodeProcess.on('error', (err) => {
+    console.error(`[SoulSync] Failed to start Node.js process: ${err}`);
+    nodeProcess = null;
   });
+
+  nodeProcess.unref();
 }
 
-function stopPythonService() {
-  if (pythonProcess) {
-    console.log('[SoulSync] Stopping Python service...');
-    pythonProcess.kill();
-    pythonProcess = null;
+function stopNodeService() {
+  if (nodeProcess) {
+    console.log('[SoulSync] Stopping Node.js service...');
+    nodeProcess.kill();
+    nodeProcess = null;
   }
 }
 
@@ -343,7 +341,7 @@ async function startDeviceCodeFlow() {
     });
     
     registerDevice(deviceId, deviceName, 'cloud', token);
-    startPythonService('--start');
+    startNodeService('--start');
 
     const greeting = await getUserGreeting(token, deviceName);
     return { success: true, message: greeting };
@@ -385,12 +383,12 @@ module.exports = function register(api) {
             return;
           }
 
-          if (pythonProcess) {
+          if (nodeProcess) {
             console.log('[SoulSync] Service already running');
             return;
           }
 
-          startPythonService('--start');
+          startNodeService('--start');
         });
     },
     { commands: ['soulsync:start'] }
@@ -440,8 +438,8 @@ module.exports = function register(api) {
         return 'SoulSync is not configured. Please connect first.';
       }
       
-      if (!pythonProcess) {
-        startPythonService('--sync');
+      if (!nodeProcess) {
+        startNodeService('--sync');
         return 'Sync triggered.';
       }
       return 'Sync already in progress.';
@@ -452,7 +450,7 @@ module.exports = function register(api) {
       description: 'Logout and unbind device from SoulSync. Call when user says "退出soulsync", "解绑设备", "断开soulsync连接".',
       input_schema: { type: 'object', properties: {}, required: [] }
     }, async () => {
-      stopPythonService();
+      stopNodeService();
       
       const cfg = loadConfig();
       if (cfg && cfg.device_id && cfg.token) {
@@ -567,12 +565,12 @@ module.exports = function register(api) {
             return;
           }
 
-          if (pythonProcess) {
+          if (nodeProcess) {
             console.log('[SoulSync] Service already running');
             return;
           }
 
-          startPythonService('--start');
+          startNodeService('--start');
         });
     },
     { commands: ['soulsync:start'] }
@@ -584,7 +582,7 @@ module.exports = function register(api) {
         .command('soulsync:stop')
         .description('停止 SoulSync 同步服务')
         .action(() => {
-          stopPythonService();
+          stopNodeService();
           console.log('[SoulSync] Service stopped');
         });
     },
@@ -593,7 +591,7 @@ module.exports = function register(api) {
 
   if (isAuthenticated()) {
     console.log('[SoulSync] Auto-starting sync service...');
-    startPythonService('--start');
+    startNodeService('--start');
   }
 
   console.log('[SoulSync] Plugin loaded. Run "openclaw soulsync:start" to begin.');
