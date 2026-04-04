@@ -61,17 +61,27 @@ class SyncEngine extends EventEmitter {
 
   async uploadFile(filename) {
     try {
+      console.log(`[SoulSync] uploadFile() called for: ${filename}`);
       const filePath = path.join(this.profilesDir, filename);
+      console.log(`[SoulSync] File path: ${filePath}`);
+
       if (!fs.existsSync(filePath)) {
         console.log(`[SoulSync] File not found: ${filename}`);
         return;
       }
 
+      console.log(`[SoulSync] Reading file: ${filename}`);
       const content = fs.readFileSync(filePath, 'utf-8');
+      console.log(`[SoulSync] File content length: ${content.length}`);
+
+      console.log(`[SoulSync] Building profiles content...`);
       const profiles = await this.buildProfilesContent();
       profiles[filename] = content;
 
+      console.log(`[SoulSync] Calling API updateProfiles...`);
       const result = await this.api.updateProfiles(profiles, this.serverVersion);
+      console.log(`[SoulSync] API response status: ${result.status}`);
+
       if (result.status === 200) {
         const newVersion = result.body.version || this.serverVersion + 1;
         this.localVersion = newVersion;
@@ -80,9 +90,12 @@ class SyncEngine extends EventEmitter {
       } else if (result.status === 409) {
         console.log(`[SoulSync] Conflict detected for: ${filename}`);
         await this.handleConflict(filename);
+      } else {
+        console.log(`[SoulSync] Unexpected response: ${result.status}`);
       }
     } catch (e) {
       console.error(`[SoulSync] Failed to upload ${filename}:`, e.message);
+      console.error(`[SoulSync] Error stack:`, e.stack);
     }
   }
 
