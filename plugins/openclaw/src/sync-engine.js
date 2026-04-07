@@ -1,17 +1,17 @@
 const fs = require('fs');
 const path = require('path');
+const os = require('os');
 const { EventEmitter } = require('events');
 const chokidar = require('chokidar');
 const WebSocket = require('ws');
 const { APIClient } = require('./api-client');
-const { getPluginDir } = require('./config');
 
 class SyncEngine extends EventEmitter {
   constructor(config) {
     super();
     this.config = config;
     this.api = new APIClient(config.cloud_url, config.token);
-    this.profilesDir = path.join(getPluginDir(), 'profiles');
+    this.profilesDir = path.join(os.homedir(), '.openclaw', 'workspace');
     this.watcher = null;
     this.ws = null;
     this.connected = false;
@@ -21,11 +21,6 @@ class SyncEngine extends EventEmitter {
 
   async initialize() {
     console.log('[SoulSync] Initializing sync engine...');
-
-    if (!fs.existsSync(this.profilesDir)) {
-      fs.mkdirSync(this.profilesDir, { recursive: true });
-      console.log('[SoulSync] Created profiles directory');
-    }
 
     await this.downloadAll();
     await this.connectWebSocket();
