@@ -71,7 +71,10 @@ class SyncEngine extends EventEmitter {
 
       console.log(`[SoulSync] Building profiles content...`);
       const profiles = await this.buildProfilesContent();
+      console.log(`[SoulSync] Profiles keys:`, Object.keys(profiles));
+      console.log(`[SoulSync] Profiles content:`, JSON.stringify(profiles).substring(0, 300));
       profiles[filename] = content;
+      console.log(`[SoulSync] After adding ${filename}, keys:`, Object.keys(profiles));
 
       console.log(`[SoulSync] Calling API updateProfiles...`);
       const result = await this.api.updateProfiles(profiles, this.serverVersion);
