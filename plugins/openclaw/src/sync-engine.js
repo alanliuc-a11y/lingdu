@@ -17,6 +17,7 @@ class SyncEngine extends EventEmitter {
     this.connected = false;
     this.localVersion = 0;
     this.serverVersion = 0;
+    this.heartbeatInterval = null;
   }
 
   async initialize() {
@@ -202,12 +203,17 @@ class SyncEngine extends EventEmitter {
         this.connected = true;
         console.log('[SoulSync] WebSocket connected');
         this.startWatching();
+        this.startHeartbeat();
       });
 
       this.ws.on('message', async (data) => {
         try {
           const msg = JSON.parse(data);
-          await this.handleWebSocketMessage(msg);
+          if (msg.type === 'pong') {
+            console.log('[SoulSync] Heartbeat received');
+          } else {
+            await this.handleWebSocketMessage(msg);
+          }
         } catch (e) {
           console.error('[SoulSync] WebSocket message parse error:', e.message);
         }
@@ -216,6 +222,7 @@ class SyncEngine extends EventEmitter {
       this.ws.on('close', () => {
         this.connected = false;
         console.log('[SoulSync] WebSocket disconnected');
+        this.stopHeartbeat();
         this.scheduleReconnect();
       });
 
@@ -253,8 +260,25 @@ class SyncEngine extends EventEmitter {
     }
   }
 
+  startHeartbeat() {
+    this.heartbeatInterval = setInterval(() => {
+      if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+        this.ws.send(JSON.stringify({ type: 'ping' }));
+        console.log('[SoulSync] Heartbeat sent');
+      }
+    }, 30000);
+  }
+
+  stopHeartbeat() {
+    if (this.heartbeatInterval) {
+      clearInterval(this.heartbeatInterval);
+      this.heartbeatInterval = null;
+    }
+  }
+
   disconnect() {
     this.stopWatching();
+    this.stopHeartbeat();
     if (this.ws) {
       this.ws.close();
       this.ws = null;
