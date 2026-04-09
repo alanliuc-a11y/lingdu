@@ -24,34 +24,49 @@ class SyncEngine extends EventEmitter {
     console.log('[SoulSync] Initializing sync engine...');
 
     await this.downloadAll();
+
     await this.connectWebSocket();
 
-    console.log('[SoulSync] Sync engine initialized');
+    console.log(`[SoulSync] Sync engine initialized - localVersion: ${this.localVersion}, serverVersion: ${this.serverVersion}`);
     return true;
   }
 
   async downloadAll() {
     try {
-      const result = await this.api.getProfiles();
-      if (result.status === 200 && result.body) {
-        const { content, version } = result.body;
-        this.serverVersion = version || 0;
+      console.log('[SoulSync] downloadAll() called');
 
-        if (content && typeof content === 'object') {
-          for (const [filename, fileContent] of Object.entries(content)) {
+      const result = await this.api.getProfiles();
+      console.log(`[SoulSync] API getProfiles response:`, JSON.stringify(result).substring(0, 200));
+
+      if (result.status === 200 && result.body) {
+        const profile = result.body;
+        console.log(`[SoulSync] Profile:`, JSON.stringify(profile).substring(0, 200));
+
+        if (profile.content) {
+          const files = Object.keys(profile.content);
+          console.log(`[SoulSync] Files in profile:`, files);
+
+          for (const [filename, content] of Object.entries(profile.content)) {
+            console.log(`[SoulSync] Writing file: ${filename}, length: ${content?.length || 0}`);
             const filePath = path.join(this.profilesDir, filename);
             const dir = path.dirname(filePath);
             if (!fs.existsSync(dir)) {
               fs.mkdirSync(dir, { recursive: true });
             }
-            fs.writeFileSync(filePath, fileContent, 'utf-8');
-            console.log(`[SoulSync] Downloaded: ${filename}`);
+            fs.writeFileSync(filePath, content, 'utf-8');
           }
+
+          this.serverVersion = profile.version || 0;
+          this.localVersion = profile.version || 0;
+          console.log(`[SoulSync] Updated versions - server: ${this.serverVersion}, local: ${this.localVersion}`);
+        } else {
+          console.log('[SoulSync] No content in profile');
         }
-        console.log(`[SoulSync] Downloaded ${Object.keys(content || {}).length} files (version ${this.serverVersion})`);
+      } else {
+        console.log(`[SoulSync] getProfiles failed: ${result.status}`);
       }
     } catch (e) {
-      console.error('[SoulSync] Failed to download profiles:', e.message);
+      console.error('[SoulSync] downloadAll error:', e.message);
     }
   }
 

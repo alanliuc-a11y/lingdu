@@ -49,7 +49,15 @@ class APIClient {
   }
 
   async getProfiles() {
-    return this.request('GET', '/api/profiles');
+    try {
+      console.log('[SoulSync] API getProfiles called');
+      const result = await this.request('GET', '/api/profiles');
+      console.log(`[SoulSync] API raw response:`, JSON.stringify(result).substring(0, 300));
+      return result;
+    } catch (e) {
+      console.error('[SoulSync] API getProfiles error:', e.message);
+      return { status: 500, body: null };
+    }
   }
 
   async updateProfiles(content, version = 0) {
