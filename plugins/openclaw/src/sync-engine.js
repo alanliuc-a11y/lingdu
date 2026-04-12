@@ -6,6 +6,17 @@ const chokidar = require('chokidar');
 const WebSocket = require('ws');
 const { APIClient } = require('./api-client');
 
+const SCENE_FIRST_DEVICE = 'SCENE_FIRST_DEVICE';
+const SCENE_EMPTY_DEVICE = 'SCENE_EMPTY_DEVICE';
+const SCENE_USED_DEVICE = 'SCENE_USED_DEVICE';
+const SCENE_NO_DATA = 'SCENE_NO_DATA';
+
+const SYNC_FILES = ['SOUL.md', 'USER.md', 'MEMORY.md', 'TOOLS.md'];
+const ADDITIVE_FILES = ['MEMORY.md', 'TOOLS.md'];
+const EXCLUSIVE_FILES = ['SOUL.md'];
+const BACKUP_FILE_PATTERN = /_backup_\d{8}_\d{6}_[a-zA-Z0-9]+\.md$/;
+const BACKUP_KEEP_COUNT = 10;
+
 class SyncEngine extends EventEmitter {
   constructor(config) {
     super();
@@ -18,17 +29,102 @@ class SyncEngine extends EventEmitter {
     this.localVersion = 0;
     this.serverVersion = 0;
     this.heartbeatInterval = null;
+    this.deviceId = this.config.device_id || 'unknown';
+    this.deviceIdShort = this.deviceId.substring(0, 8);
+    this.pendingChanges = [];
+    this.isSyncing = false;
   }
 
   async initialize() {
     console.log('[SoulSync] Initializing sync engine...');
+    console.log(`[SoulSync] Profiles directory: ${this.profilesDir}`);
+    console.log(`[SoulSync] Device ID: ${this.deviceIdShort}`);
 
-    await this.downloadAll();
+    const result = await this.api.getProfiles();
+    const serverContent = (result.status === 200 && result.body && result.body.content) ? result.body.content : {};
+    const serverVersion = (result.status === 200 && result.body) ? result.body.version || 0 : 0;
+
+    const { scene } = this.detectScene(serverContent);
+    this.serverVersion = serverVersion;
+
+    const sceneResult = await this.handleScene(scene, serverContent);
+
+    if (sceneResult && !sceneResult.success) {
+      console.log(`[SoulSync] ${sceneResult.message}`);
+    }
 
     await this.connectWebSocket();
 
     console.log(`[SoulSync] Sync engine initialized - localVersion: ${this.localVersion}, serverVersion: ${this.serverVersion}`);
-    return true;
+    return sceneResult;
+  }
+
+  detectScene(serverContent) {
+    const localFileStates = {};
+    let localNonEmptyCount = 0;
+    let localEmptyCount = 0;
+
+    for (const filename of SYNC_FILES) {
+      const filePath = path.join(this.profilesDir, filename);
+      const exists = fs.existsSync(filePath);
+      const stats = exists ? fs.statSync(filePath) : null;
+      const size = stats ? stats.size : 0;
+      const isNonEmpty = exists && size > 10;
+
+      localFileStates[filename] = { exists, size, isNonEmpty };
+
+      if (isNonEmpty) {
+        localNonEmptyCount++;
+      } else {
+        localEmptyCount++;
+      }
+    }
+
+    const serverHasData = serverContent && Object.keys(serverContent).length > 0;
+    const serverNonEmptyKeys = serverHasData ? Object.keys(serverContent).filter(k => serverContent[k] && serverContent[k].length > 10) : [];
+    const serverHasNonEmptyData = serverNonEmptyKeys.length > 0;
+
+    let scene;
+    if (!serverHasNonEmptyData && localNonEmptyCount > 0) {
+      scene = SCENE_FIRST_DEVICE;
+    } else if (serverHasNonEmptyData && localNonEmptyCount === 0) {
+      scene = SCENE_EMPTY_DEVICE;
+    } else if (serverHasNonEmptyData && localNonEmptyCount > 0) {
+      scene = SCENE_USED_DEVICE;
+    } else {
+      scene = SCENE_NO_DATA;
+    }
+
+    console.log(`[SoulSync] Scene detected: ${scene}`);
+    console.log(`[SoulSync] Local non-empty: ${localNonEmptyCount}, Server has data: ${serverHasNonEmptyData}`);
+
+    return { scene, localFileStates };
+  }
+
+  async handleScene(scene, serverContent) {
+    switch (scene) {
+      case SCENE_FIRST_DEVICE:
+        console.log('[SoulSync] Uploading local data to cloud (first device)');
+        await this.uploadAll();
+        return { success: true, message: '已将本地灵魂数据上传至云端，完成初始化' };
+
+      case SCENE_EMPTY_DEVICE:
+        console.log('[SoulSync] Downloading cloud data to local (empty device)');
+        await this.downloadAll();
+        return { success: true, message: '已从云端拉取最新配置，设备已对齐全局基准' };
+
+      case SCENE_USED_DEVICE:
+        console.log('[SoulSync] Merging local and cloud data (used device)');
+        await this.mergeAll(serverContent);
+        return { success: true, message: '本地数据与云端数据已安全合并，历史内容均已保留' };
+
+      case SCENE_NO_DATA:
+        console.log('[SoulSync] No data available');
+        return { success: false, message: '未检测到灵魂数据，请初始化 OpenClaw 配置后重试' };
+
+      default:
+        return { success: false, message: 'Unknown scene' };
+    }
   }
 
   async downloadAll() {
@@ -43,58 +139,397 @@ class SyncEngine extends EventEmitter {
         console.log(`[SoulSync] Profile:`, JSON.stringify(profile).substring(0, 200));
 
         if (profile.content) {
-          const files = Object.keys(profile.content);
-          console.log(`[SoulSync] Files in profile:`, files);
+          const { scene } = this.detectScene(profile.content);
 
-          for (const [filename, content] of Object.entries(profile.content)) {
-            console.log(`[SoulSync] Writing file: ${filename}, length: ${content?.length || 0}`);
-            const filePath = path.join(this.profilesDir, filename);
-            const dir = path.dirname(filePath);
-            if (!fs.existsSync(dir)) {
-              fs.mkdirSync(dir, { recursive: true });
+          if (scene === SCENE_NO_DATA) {
+            console.log('[SoulSync] No data in cloud');
+            this.serverVersion = profile.version || 0;
+            this.localVersion = this.getLocalVersion();
+            return;
+          }
+
+          if (scene === SCENE_EMPTY_DEVICE) {
+            for (const [filename, content] of Object.entries(profile.content)) {
+              await this.writeFileSafe(filename, content);
             }
-            fs.writeFileSync(filePath, content, 'utf-8');
+          } else if (scene === SCENE_USED_DEVICE) {
+            await this.mergeAll(profile.content);
+          } else if (scene === SCENE_FIRST_DEVICE) {
+            console.log('[SoulSync] First device - uploading local data');
           }
 
           this.serverVersion = profile.version || 0;
-          this.localVersion = profile.version || 0;
+          this.localVersion = this.getLocalVersion();
           console.log(`[SoulSync] Updated versions - server: ${this.serverVersion}, local: ${this.localVersion}`);
         } else {
           console.log('[SoulSync] No content in profile');
+          this.localVersion = this.getLocalVersion();
         }
       } else {
         console.log(`[SoulSync] getProfiles failed: ${result.status}`);
+        this.localVersion = this.getLocalVersion();
       }
     } catch (e) {
       console.error('[SoulSync] downloadAll error:', e.message);
+      this.localVersion = this.getLocalVersion();
+    }
+  }
+
+  getLocalVersion() {
+    let maxMtime = 0;
+    for (const filename of SYNC_FILES) {
+      const filePath = path.join(this.profilesDir, filename);
+      if (fs.existsSync(filePath)) {
+        const mtime = fs.statSync(filePath).mtime.getTime();
+        if (mtime > maxMtime) {
+          maxMtime = mtime;
+        }
+      }
+    }
+    return maxMtime;
+  }
+
+  async mergeAll(serverContent) {
+    for (const filename of SYNC_FILES) {
+      const serverData = serverContent ? serverContent[filename] : null;
+      const localPath = path.join(this.profilesDir, filename);
+      const localExists = fs.existsSync(localPath);
+      const localContent = localExists ? fs.readFileSync(localPath, 'utf-8') : '';
+
+      const localIsEmpty = !localExists || localContent.length <= 10;
+      const serverIsEmpty = !serverData || serverData.length <= 10;
+
+      if (localIsEmpty && serverIsEmpty) {
+        continue;
+      }
+
+      if (localIsEmpty) {
+        await this.writeFileSafe(filename, serverData);
+      } else if (serverIsEmpty) {
+        continue;
+      } else {
+        const merged = await this.mergeFile(filename, localContent, serverData);
+        await this.writeFileSafe(filename, merged);
+      }
+    }
+  }
+
+  async mergeFile(filename, localContent, serverContent) {
+    if (ADDITIVE_FILES.includes(filename)) {
+      return this.mergeAdditive(localContent, serverContent);
+    } else if (EXCLUSIVE_FILES.includes(filename)) {
+      return this.mergeExclusive(filename, localContent, serverContent);
+    } else {
+      return localContent;
+    }
+  }
+
+  async mergeAdditive(localContent, serverContent) {
+    const localItems = this.parseAdditiveItems(localContent);
+    const serverItems = this.parseAdditiveItems(serverContent);
+
+    const localItemMap = new Map();
+    for (const item of localItems) {
+      const ts = this.extractItemTimestamp(item);
+      localItemMap.set(item, { item, timestamp: ts, source: 'local' });
+    }
+
+    const mergedItems = [...localItems.map(item => ({ item, timestamp: this.extractItemTimestamp(item), source: 'local' }))];
+
+    for (const item of serverItems) {
+      const isDuplicate = localItemMap.has(item);
+      if (!isDuplicate) {
+        mergedItems.push({ item, timestamp: this.extractItemTimestamp(item), source: 'server' });
+      }
+    }
+
+    mergedItems.sort((a, b) => {
+      if (a.timestamp && b.timestamp) {
+        return b.timestamp - a.timestamp;
+      }
+      if (a.timestamp && !b.timestamp) {
+        return -1;
+      }
+      if (!a.timestamp && b.timestamp) {
+        return 1;
+      }
+      return 0;
+    });
+
+    return mergedItems.map(entry => `- ${entry.item}`).join('\n');
+  }
+
+  extractItemTimestamp(itemContent) {
+    const match = itemContent.match(/^(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2})\s/);
+    if (match) {
+      return new Date(match[1]).getTime();
+    }
+    return null;
+  }
+
+  parseAdditiveItems(content) {
+    if (!content || typeof content !== 'string') return [];
+    return content.split('\n')
+      .map(line => line.trim())
+      .filter(line => line.startsWith('- ') && line.length > 2)
+      .map(line => line.substring(2));
+  }
+
+  deduplicateItems(items) {
+    const seen = new Set();
+    const unique = [];
+    for (const item of items) {
+      if (!seen.has(item)) {
+        seen.add(item);
+        unique.push(item);
+      }
+    }
+    return unique;
+  }
+
+  async mergeExclusive(filename, localContent, serverContent) {
+    const localData = this.parseSoulFields(localContent, filename);
+    const serverData = this.parseSoulFields(serverContent, filename);
+
+    const merged = { ...serverData };
+
+    for (const [field, localValue] of Object.entries(localData)) {
+      const serverValue = serverData[field];
+      const localTime = this.parseTimestamp(localValue?.last_modified);
+      const serverTime = this.parseTimestamp(serverValue?.last_modified);
+
+      if (!localTime && !serverTime) {
+        merged[field] = localValue;
+      } else if (!localTime) {
+        merged[field] = serverValue;
+      } else if (!serverTime) {
+        merged[field] = localValue;
+      } else if (localTime > serverTime) {
+        merged[field] = localValue;
+      } else {
+        merged[field] = serverValue;
+      }
+    }
+
+    return this.formatSoulContent(merged);
+  }
+
+  parseSoulFields(content, filename) {
+    if (!content || typeof content !== 'string') return {};
+
+    const fields = {};
+
+    const fieldDefs = [
+      { name: 'ai_name', label: 'AI名称' },
+      { name: 'core_personality', label: '核心人格' },
+      { name: 'self_awareness', label: '自我认知' }
+    ];
+
+    for (const { name, label } of fieldDefs) {
+      const valuePattern = new RegExp(`^[#\\s]*${label}[：:]\\s*(.+?)\\s*$`, 'im');
+      const valueMatch = content.match(valuePattern);
+
+      const lastModifiedPattern = new RegExp(`^${name}_last_modified[：:]\\s*(\\d{4}-\\d{2}-\\d{2}\\s+\\d{2}:\\d{2}:\\d{2})`, 'im');
+      const lastModifiedMatch = content.match(lastModifiedPattern);
+
+      const devicePattern = new RegExp(`^${name}_modified_device[：:]\\s*(.+?)\\s*$`, 'im');
+      const deviceMatch = content.match(devicePattern);
+
+      if (valueMatch) {
+        let lastModified = null;
+        if (lastModifiedMatch) {
+          lastModified = this.parseTimestamp(lastModifiedMatch[1]);
+        }
+        if (!lastModified) {
+          const globalTimestamp = this.extractTimestamp(content);
+          if (globalTimestamp) {
+            lastModified = globalTimestamp;
+          } else {
+            lastModified = this.getFileMtime(filename);
+          }
+        }
+
+        fields[name] = {
+          value: valueMatch[1].trim(),
+          last_modified: lastModified,
+          modified_device: deviceMatch ? deviceMatch[1].trim() : null
+        };
+      }
+    }
+
+    return fields;
+  }
+
+  extractTimestamp(content) {
+    const timeMatch = content.match(/最后更新[：:]\s*(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2})/);
+    if (timeMatch) {
+      return this.parseTimestamp(timeMatch[1]);
+    }
+    return null;
+  }
+
+  parseTimestamp(timeStr) {
+    if (!timeStr) return 0;
+    try {
+      const date = new Date(timeStr.replace(/\s+/g, ' '));
+      if (isNaN(date.getTime())) return 0;
+      return date.getTime();
+    } catch {
+      return 0;
+    }
+  }
+
+  getFileMtime(filename) {
+    const filePath = path.join(this.profilesDir, filename);
+    if (fs.existsSync(filePath)) {
+      return fs.statSync(filePath).mtime.getTime();
+    }
+    return 0;
+  }
+
+  formatSoulContent(fields) {
+    let content = '';
+    const fieldLabels = {
+      ai_name: 'AI名称',
+      core_personality: '核心人格',
+      self_awareness: '自我认知'
+    };
+
+    for (const [field, data] of Object.entries(fields)) {
+      const label = fieldLabels[field];
+      if (label && data?.value) {
+        const timestamp = this.formatTimestamp(data.last_modified);
+        content += `${label}：${data.value}\n`;
+        if (timestamp) {
+          content += `最后更新：${timestamp}\n`;
+        }
+        content += '\n';
+      }
+    }
+
+    return content.trim();
+  }
+
+  formatTimestamp(timestamp) {
+    if (!timestamp) return '';
+    const date = new Date(timestamp);
+    return date.toISOString().slice(0, 19) + 'Z';
+  }
+
+  async writeFileSafe(filename, content) {
+    const filePath = path.join(this.profilesDir, filename);
+
+    await this.createBackup(filename);
+
+    const dir = path.dirname(filePath);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+
+    fs.writeFileSync(filePath, content, 'utf-8');
+    console.log(`[SoulSync] Written: ${filename} (${content.length} chars)`);
+  }
+
+  async createBackup(filename) {
+    const filePath = path.join(this.profilesDir, filename);
+    if (!fs.existsSync(filePath)) {
+      return;
+    }
+
+    const timestamp = this.formatTimestampForBackup(Date.now());
+    const backupName = `${filename}_backup_${timestamp}_${this.deviceIdShort}.md`;
+    const backupPath = path.join(this.profilesDir, backupName);
+
+    try {
+      fs.copyFileSync(filePath, backupPath);
+      console.log(`[SoulSync] Backup created: ${backupName}`);
+
+      await this.cleanOldBackups(filename);
+    } catch (e) {
+      console.error(`[SoulSync] Failed to create backup: ${e.message}`);
+    }
+  }
+
+  formatTimestampForBackup(timestamp) {
+    const date = new Date(timestamp);
+    const year = date.getUTCFullYear();
+    const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(date.getUTCDate()).padStart(2, '0');
+    const hours = String(date.getUTCHours()).padStart(2, '0');
+    const minutes = String(date.getUTCMinutes()).padStart(2, '0');
+    const seconds = String(date.getUTCSeconds()).padStart(2, '0');
+    return `${year}${month}${day}_${hours}${minutes}${seconds}`;
+  }
+
+  async cleanOldBackups(filename) {
+    const backupFiles = fs.readdirSync(this.profilesDir)
+      .filter(f => f.startsWith(`${filename}_backup_`) && f.endsWith('.md'))
+      .map(f => ({
+        name: f,
+        path: path.join(this.profilesDir, f),
+        mtime: fs.statSync(path.join(this.profilesDir, f)).mtime.getTime()
+      }))
+      .sort((a, b) => b.mtime - a.mtime);
+
+    if (backupFiles.length > BACKUP_KEEP_COUNT) {
+      const toDelete = backupFiles.slice(BACKUP_KEEP_COUNT);
+      for (const backup of toDelete) {
+        try {
+          fs.unlinkSync(backup.path);
+          console.log(`[SoulSync] Deleted old backup: ${backup.name}`);
+        } catch (e) {
+          console.error(`[SoulSync] Failed to delete backup: ${e.message}`);
+        }
+      }
+    }
+  }
+
+  isBackupFile(filename) {
+    return BACKUP_FILE_PATTERN.test(filename);
+  }
+
+  async uploadAll() {
+    try {
+      const profiles = await this.buildProfilesContent();
+      const result = await this.api.updateProfiles(profiles, this.serverVersion);
+
+      if (result.status === 200) {
+        const newVersion = result.body.version || this.serverVersion + 1;
+        this.localVersion = newVersion;
+        this.serverVersion = newVersion;
+        console.log(`[SoulSync] Uploaded all (version ${this.serverVersion})`);
+      } else if (result.status === 409) {
+        console.log('[SoulSync] Conflict on uploadAll, merging...');
+        const serverResult = await this.api.getProfiles();
+        if (serverResult.status === 200 && serverResult.body) {
+          await this.mergeAll(serverResult.body.content);
+        }
+      }
+    } catch (e) {
+      console.error(`[SoulSync] Failed to upload all: ${e.message}`);
     }
   }
 
   async uploadFile(filename) {
     try {
+      if (this.isBackupFile(filename)) {
+        console.log(`[SoulSync] Skipping backup file: ${filename}`);
+        return;
+      }
+
       console.log(`[SoulSync] uploadFile() called for: ${filename}`);
       const filePath = path.join(this.profilesDir, filename);
-      console.log(`[SoulSync] File path: ${filePath}`);
 
       if (!fs.existsSync(filePath)) {
         console.log(`[SoulSync] File not found: ${filename}`);
         return;
       }
 
-      console.log(`[SoulSync] Reading file: ${filename}`);
       const content = fs.readFileSync(filePath, 'utf-8');
-      console.log(`[SoulSync] File content length: ${content.length}`);
-
-      console.log(`[SoulSync] Building profiles content...`);
       const profiles = await this.buildProfilesContent();
-      console.log(`[SoulSync] Profiles keys:`, Object.keys(profiles));
-      console.log(`[SoulSync] Profiles content:`, JSON.stringify(profiles).substring(0, 300));
       profiles[filename] = content;
-      console.log(`[SoulSync] After adding ${filename}, keys:`, Object.keys(profiles));
 
-      console.log(`[SoulSync] Calling API updateProfiles...`);
       const result = await this.api.updateProfiles(profiles, this.serverVersion);
-      console.log(`[SoulSync] API response status: ${result.status}`);
 
       if (result.status === 200) {
         const newVersion = result.body.version || this.serverVersion + 1;
@@ -104,12 +539,9 @@ class SyncEngine extends EventEmitter {
       } else if (result.status === 409) {
         console.log(`[SoulSync] Conflict detected for: ${filename}`);
         await this.handleConflict(filename);
-      } else {
-        console.log(`[SoulSync] Unexpected response: ${result.status}`);
       }
     } catch (e) {
       console.error(`[SoulSync] Failed to upload ${filename}:`, e.message);
-      console.error(`[SoulSync] Error stack:`, e.stack);
     }
   }
 
@@ -119,29 +551,23 @@ class SyncEngine extends EventEmitter {
       if (result.status === 200 && result.body && result.body.content) {
         const content = result.body.content[filename];
         if (content) {
-          const filePath = path.join(this.profilesDir, filename);
-          const dir = path.dirname(filePath);
-          if (!fs.existsSync(dir)) {
-            fs.mkdirSync(dir, { recursive: true });
-          }
-          fs.writeFileSync(filePath, content, 'utf-8');
+          await this.writeFileSafe(filename, content);
           console.log(`[SoulSync] Downloaded: ${filename}`);
           return true;
         }
       }
     } catch (e) {
-      console.error(`[SoulSync] Failed to download ${filename}:`, e.message);
+      console.error(`[SoulSync] Failed to download ${filename}: ${e.message}`);
     }
     return false;
   }
 
   async buildProfilesContent() {
     const profiles = {};
-    const files = ['SOUL.md', 'USER.md', 'MEMORY.md'];
 
-    for (const filename of files) {
+    for (const filename of SYNC_FILES) {
       const filePath = path.join(this.profilesDir, filename);
-      if (fs.existsSync(filePath)) {
+      if (fs.existsSync(filePath) && !this.isBackupFile(filename)) {
         profiles[filename] = fs.readFileSync(filePath, 'utf-8');
       }
     }
@@ -151,17 +577,20 @@ class SyncEngine extends EventEmitter {
 
   async handleConflict(filename) {
     const localPath = path.join(this.profilesDir, filename);
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const conflictPath = path.join(this.profilesDir, `${filename}.conflict.${timestamp}`);
-
-    try {
-      fs.copyFileSync(localPath, conflictPath);
-      console.log(`[SoulSync] Conflict saved: ${conflictPath}`);
-    } catch (e) {
-      console.error('[SoulSync] Failed to save conflict file:', e.message);
+    if (fs.existsSync(localPath)) {
+      await this.createBackup(filename);
     }
 
-    await this.downloadFile(filename);
+    const serverResult = await this.api.getProfiles();
+    if (serverResult.status === 200 && serverResult.body && serverResult.body.content) {
+      const serverContent = serverResult.body.content[filename];
+      if (serverContent) {
+        const localContent = fs.existsSync(localPath) ? fs.readFileSync(localPath, 'utf-8') : '';
+        const merged = await this.mergeFile(filename, localContent, serverContent);
+        await this.writeFileSafe(filename, merged);
+        console.log(`[SoulSync] Conflict resolved for: ${filename}`);
+      }
+    }
   }
 
   startWatching() {
@@ -170,23 +599,36 @@ class SyncEngine extends EventEmitter {
     }
 
     this.watcher = chokidar.watch(this.profilesDir, {
-      ignored: /\.conflict\./,
+      ignored: (path) => {
+        const basename = path.basename(path);
+        return this.isBackupFile(basename) || basename.includes('.conflict.');
+      },
       persistent: true,
       ignoreInitial: true
     });
 
     this.watcher.on('change', async (filePath) => {
       const filename = path.basename(filePath);
+      if (this.isBackupFile(filename) || filename.includes('.conflict.')) {
+        return;
+      }
+      if (!SYNC_FILES.includes(filename)) {
+        return;
+      }
       console.log(`[SoulSync] File changed: ${filename}`);
       await this.uploadFile(filename);
     });
 
     this.watcher.on('add', async (filePath) => {
       const filename = path.basename(filePath);
-      if (!filename.includes('.conflict.')) {
-        console.log(`[SoulSync] File added: ${filename}`);
-        await this.uploadFile(filename);
+      if (this.isBackupFile(filename) || filename.includes('.conflict.')) {
+        return;
       }
+      if (!SYNC_FILES.includes(filename)) {
+        return;
+      }
+      console.log(`[SoulSync] File added: ${filename}`);
+      await this.uploadFile(filename);
     });
 
     this.watcher.on('unlink', (filePath) => {
@@ -207,7 +649,7 @@ class SyncEngine extends EventEmitter {
 
   async connectWebSocket() {
     try {
-      const wsUrl = this.config.cloud_url.replace('http', 'ws') + '/ws';
+      const wsUrl = this.config.cloud_url.replace(/^http/, 'ws') + '/ws';
       this.ws = new WebSocket(wsUrl, {
         headers: {
           'Authorization': `Bearer ${this.config.token}`
@@ -262,11 +704,8 @@ class SyncEngine extends EventEmitter {
   async handleWebSocketMessage(msg) {
     switch (msg.type) {
       case 'profile_updated':
-        if (msg.filename) {
-          await this.downloadFile(msg.filename);
-        } else {
-          await this.downloadAll();
-        }
+        console.log(`[SoulSync] Received update notification, version: ${msg.version}`);
+        await this.downloadAll();
         break;
       case 'pong':
         break;
@@ -303,4 +742,4 @@ class SyncEngine extends EventEmitter {
   }
 }
 
-module.exports = { SyncEngine };
+module.exports = { SyncEngine, SCENE_FIRST_DEVICE, SCENE_EMPTY_DEVICE, SCENE_USED_DEVICE, SCENE_NO_DATA };
