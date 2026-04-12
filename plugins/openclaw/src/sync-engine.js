@@ -599,8 +599,8 @@ class SyncEngine extends EventEmitter {
     }
 
     this.watcher = chokidar.watch(this.profilesDir, {
-      ignored: (path) => {
-        const basename = path.basename(path);
+      ignored: (filePath) => {
+        const basename = path.basename(filePath);
         return this.isBackupFile(basename) || basename.includes('.conflict.');
       },
       persistent: true,
