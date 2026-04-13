@@ -237,7 +237,7 @@ function startNodeService(mode = '--start') {
     nodeProcess = null;
   }
 
-  nodeProcess = spawn('node', [daemonScript, mode], {
+  nodeProcess = spawn(process.execPath, [daemonScript, mode], {
     cwd: pluginDir,
     env: { ...process.env, OPENCLAW_PLUGIN: 'true', PLUGIN_DIR: pluginDir },
     stdio: 'ignore',

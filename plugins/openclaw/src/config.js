@@ -17,6 +17,12 @@ function loadConfig() {
   try {
     if (fs.existsSync(configPath)) {
       config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+      if (!config.cloud_url && config.server_url) {
+        config.cloud_url = config.server_url;
+      }
+      if (!config.cloud_url) {
+        config.cloud_url = 'https://soulsync.work';
+      }
       return config;
     }
   } catch (e) {
@@ -33,6 +39,10 @@ function saveConfig(newConfig) {
     let existing = {};
     if (fs.existsSync(configPath)) {
       existing = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+    }
+    if (newConfig.server_url && !newConfig.cloud_url) {
+      newConfig.cloud_url = newConfig.server_url;
+      delete newConfig.server_url;
     }
     config = { ...existing, ...newConfig };
     fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
