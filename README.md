@@ -1,13 +1,25 @@
-# SoulSync（灵渡）
+# LingDu（灵渡）
 
-> **Cross-device soul synchronization for AI assistants.**  
-> **AI 助手的跨设备灵魂同步系统。**
+> **Cross-device memory synchronization for AI assistants.**  
+> **AI 助手的跨设备记忆同步系统。**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![npm version](https://img.shields.io/npm/v/soulsync.svg)](https://www.npmjs.com/package/soulsync)
 [![Downloads](https://img.shields.io/npm/dm/soulsync.svg)](https://www.npmjs.com/package/soulsync)
 
 🌐 [English](#english) | [中文](#中文)
+
+---
+
+## ⚠️ Rebranding Notice
+
+**This project has been renamed from SoulSync to LingDu (灵渡).**
+
+- **npm package**: `soulsync` (legacy, will be deprecated) → `lingdu` (coming soon)
+- **OpenClaw plugin**: Now available as `lingdu`
+- **Purpose**: The rebranding reflects our commitment to Chinese-first naming and resolves naming conflicts on ClawHub.
+
+**Existing users**: Your data is safe. The service domain `soulsync.work` remains unchanged.
 
 ---
 
@@ -45,331 +57,191 @@ AI: Sorry, I don't have that memory
 
 ---
 
-### ✅ SoulSync's Solution
+### ✅ LingDu's Solution
 
-SoulSync is a **cloud-based soul synchronization system** designed for AI assistants:
+LingDu is a **cloud-based memory synchronization system** designed for AI assistants:
 
-| Pain Point | Traditional Solution | SoulSync |
-|------------|---------------------|----------|
+| Pain Point | Traditional Solution | LingDu |
+|------------|---------------------|---------|
 | Memory not synced | Manual file copying | ⚡ Real-time auto-sync (< 1s) |
 | Duplicate config | Reconfigure every device | ☁️ Set once, works everywhere |
 | Data silos | Local storage, easy to lose | 🔒 Cloud encrypted storage, permanent |
 | Manual sync inefficiency | Git/Cloud/rsync | 🤖 Zero-config, plugin handles it |
 
 **Core Features**:
-- 📝 **Three Soul Files Sync**: SOUL.md (personality), USER.md (user info), MEMORY.md (memory)
-- ⚡ **WebSocket Real-time Push**: Syncs to all devices within 1 second
-- 🔒 **Local Encryption**: All user data encrypted locally before upload, cloud cannot read plaintext
-- 🛡️ **HTTPS/WSS Transport**: Data transmission fully encrypted, prevents man-in-the-middle attacks
-- 🤖 **Zero Configuration**: Install plugin, command-line auth, done
-- 🌍 **Cross-Platform**: Windows, macOS, Linux all supported
-- 🆓 **Free to Start**: Basic features free forever
+- 📝 **Three-file soul sync**: SOUL.md (personality), USER.md (user info), MEMORY.md (conversation history)
+- ⚡ **Real-time sync**: File changes detected and synced in < 1s
+- 🔐 **Encrypted cloud storage**: AES-256-GCM encryption, AWS KMS key management
+- 🌍 **Multi-device support**: Unlimited devices, all stay in sync
+- 🤖 **Zero-config**: Install plugin → authorize → auto sync
+- 🔌 **Multi-AI support**: Works with OpenClaw, CoPaw, Claude Desktop, and more (coming soon)
 
 ---
 
-### 🔐 Security Mechanisms
+### 📦 Installation
 
-**SoulSync employs multi-layer security protection**:
-
-1. **Local Encryption**:
-   - All soul files (SOUL.md, USER.md, MEMORY.md) encrypted locally using AES-256
-   - Encryption key derived from user password, server cannot decrypt
-   - Cloud only stores encrypted data, cannot read plaintext content
-
-2. **Transport Encryption**:
-   - All data transmission uses HTTPS (REST API) and WSS (WebSocket)
-   - TLS 1.3 encryption protocol, prevents man-in-the-middle attacks
-   - Token authentication, prevents unauthorized access
-
-3. **Access Control**:
-   - JWT Token validation, each device independently authorized
-   - Device-level permission management, can unbind devices anytime
-   - Only you can access your soul files
-
-4. **Data Sovereignty**:
-   - Supports self-hosting deployment, full control of data
-   - Open-source client code, auditable security
-   - Server code gradually open sourced
-
-**Your data, only you can read.**
-
----
-
-### 🚀 Quick Start (5 Steps)
-
-#### Prerequisites
-- [OpenClaw](https://openclaw.ai) installed
-- Node.js 16+ or Python 3.8+
-
----
-
-#### Step 1: Install Plugin
+#### For OpenClaw Users (Recommended)
 
 ```bash
-# Method 1: Use OpenClaw plugin manager (recommended)
-openclaw plugins install soulsync
+# Install LingDu plugin from ClawHub
+openclaw plugin install lingdu
 
-# Method 2: Use npm global install
-npm install -g soulsync
+# Authorize and start syncing
+# The AI will guide you through the setup
 ```
 
----
-
-#### Step 2: Restart Gateway
-
-After installation, restart OpenClaw's gateway to enable SoulSync:
+#### For npm Users
 
 ```bash
-openclaw gateway restart
+# Legacy package name (will be deprecated)
+npm install soulsync
+
+# New package name (coming soon)
+npm install lingdu
 ```
+
+#### For Other AI Assistants
+
+We're working on support for:
+- CoPaw (coming soon)
+- Claude Desktop (coming soon)
+- ChatGPT Desktop (planned)
+- Other MCP-compatible assistants
 
 ---
 
-#### Step 3: Start SoulSync
+### 🚀 Quick Start
 
-```bash
-openclaw soulsync:start
-```
+1. **Install the plugin** (see Installation above)
 
-This will automatically:
-1. Start SoulSync background process
-2. Generate authorization link
-3. Open authorization page in browser
+2. **Authorize your account**
 
-**Example output**:
-```
-[SoulSync] Starting...
-[SoulSync] Authorization URL: https://soulsync.work/auth?code=ABC123XYZ
-[SoulSync] Opening browser...
-```
+   In your AI chat:
+   ```
+   You: Connect LingDu
+   AI: Opening browser for authorization...
+   ```
 
----
+   Or use command:
+   ```bash
+   openclaw lingdu:start
+   ```
 
-#### Step 4: Login/Register in Browser
+3. **Start syncing automatically**
 
-Browser will automatically open authorization page:
-
-**First-time Use (Register)**:
-1. Enter email (e.g., user@example.com)
-2. Receive 6-digit verification code (check email)
-3. Enter verification code
-4. Set password (8+ characters, used to encrypt local data)
-5. Registration successful, auto-redirect
-
-**Existing Account (Login)**:
-1. Enter email and password
-2. Login successful, auto-redirect
-
-After successful authorization, browser will display:
-```
-✅ Authorization Successful!
-Device "MacBook Pro" connected to SoulSync
-You can close this page and return to command line.
-```
-
----
-
-#### Step 5: Close Command Line Window
-
-**⚠️ Important**:
-
-- **Do NOT use `Ctrl+C` to interrupt the process**, this will stop SoulSync background service
-- **Simply close the command line window**, SoulSync will continue running in background with minimal resource usage
-- To stop SoulSync, use command: `openclaw soulsync:stop`
-
----
-
-### ✅ Done!
-
-Your soul files are now automatically syncing. In OpenClaw, you'll see a welcome message:
-
-```
-Hello Alan, I'm Sanshu, delighted to meet you again on MacBook Pro.
-
-Synced: SOUL.md / USER.md / MEMORY.md
-```
-
----
-
-### 📖 How It Works
-
-```
-┌─────────────────┐         ┌──────────────────────┐         ┌─────────────────┐
-│   Device A      │         │   SoulSync Cloud     │         │   Device B      │
-│   OpenClaw      │◄───────►│   soulsync.work      │◄───────►│   OpenClaw      │
-│                 │WebSocket│                      │WebSocket│                 │
-│  Local Encrypted│         │  ┌────────────────┐  │         │  Local Encrypted│
-│  ┌───────────┐  │         │  │ Encrypted Data │  │         │  ┌───────────┐  │
-│  │ SOUL.md   │──┼────────►│  │ (Cannot read)  │◄─┼─────────│  │ SOUL.md   │  │
-│  │ USER.md   │  │ AES-256 │  │                │  │ AES-256 │  │ USER.md   │  │
-│  │ MEMORY.md │  │         │  │ JWT Token Auth │  │         │  │ MEMORY.md │  │
-│  └───────────┘  │         │  └────────────────┘  │         │  └───────────┘  │
-└─────────────────┘         └──────────────────────┘         └─────────────────┘
-     HTTPS/WSS                                                      HTTPS/WSS
-```
-
-**Sync Flow**:
-1. Device A modifies `MEMORY.md`
-2. SoulSync plugin detects file change
-3. Encrypts data using AES-256
-4. Pushes to cloud via HTTPS/WSS
-5. Cloud validates Token, stores encrypted data
-6. Cloud broadcasts to Device B via WebSocket
-7. Device B receives encrypted data, decrypts using local key
-8. Writes to local `MEMORY.md`
-
-**Latency**: Usually < 1 second
-
----
-
-### 🛠️ Common Commands
-
-| Command | Description |
-|---------|-------------|
-| `openclaw soulsync:start` | Start SoulSync and authorize |
-| `openclaw soulsync:stop` | Stop SoulSync background service |
-| `openclaw soulsync:status` | Check SoulSync running status |
-| `openclaw soulsync:devices` | View all connected devices |
-| `openclaw soulsync:sync` | Manually trigger sync |
-| `openclaw soulsync:logout` | Logout and unbind current device |
+   Your AI's memory files are now synced across all devices in real-time!
 
 ---
 
 ### 🎯 Use Cases
 
-#### Case 1: Multi-Device Developer
+#### 1. Work-Life Balance
 ```
-Office Ubuntu Workstation
-  ↓ Real-time sync
-Home MacBook Pro
-  ↓ Real-time sync
-Travel Windows Laptop
+Office (Windows):
+- Configure AI with work-related knowledge and tone
+- Save project documentation and meeting notes
+
+Home (macOS):
+- Same AI personality and memories
+- Continue conversations seamlessly
 ```
 
-AI assistant remembers on all devices:
-- Project context
-- Code style preferences
-- Common commands and workflows
+#### 2. Team Collaboration
+```
+Team Leader:
+- Sets up shared AI configuration
+- Defines team workflows and guidelines
 
-#### Case 2: Data Backup & Migration
-- **Local file loss**: Cloud encrypted backup, restore anytime
-- **New computer**: Re-authorize to restore all memories
-- **Cross-bot migration**: Switch from OpenClaw to another AI, soul files migrate seamlessly
+Team Members:
+- Inherit same AI setup
+- Share collective knowledge base
+```
 
-#### Case 3: Team Collaboration (Coming Soon)
-- Team members share the same AI assistant's knowledge base
-- New members join, AI already knows team's workflow
-- Project docs, code standards auto-synced
+#### 3. Multi-Device Developer
+```
+Desktop (coding):
+- AI learns your coding patterns
+- Saves project context and TODOs
+
+Laptop (meetings):
+- Same code knowledge available
+- AI remembers project discussions
+```
 
 ---
 
 ### 📚 Documentation
 
-- [Installation Guide](docs/INSTALL.md) - Detailed installation steps and environment setup
-- [Troubleshooting](docs/TROUBLESHOOTING.md) - Common issues and solutions
-- [Deployment Checklist](docs/DEPLOY_CHECKLIST.md) - Self-hosting deployment guide
-- [API Documentation](docs/API.md) - RESTful API and WebSocket protocol
-- [Changelog](CHANGELOG.md) - Version history and new features
+- [User Guide](docs/USER_GUIDE.md) (coming soon)
+- [API Documentation](docs/API.md) (coming soon)
+- [Migration Guide](docs/MIGRATION.md) (for SoulSync → LingDu)
+- [Troubleshooting](docs/TROUBLESHOOTING.md)
 
 ---
 
-### 🤝 Community & Support
+### 🛠️ Technical Architecture
 
-- **GitHub Issues**: [Report bugs or request features](https://github.com/alanliuc-a11y/soulsync/issues)
-- **GitHub Discussions**: [Technical discussions and Q&A](https://github.com/alanliuc-a11y/soulsync/discussions)
-- **Email Support**: support@soulsync.work
+```
+┌─────────────────┐
+│  Device A       │
+│  ┌───────────┐  │         ┌──────────────┐
+│  │ OpenClaw  │──┼────────▶│ LingDu Cloud │
+│  │ + LingDu  │  │  HTTPS  │   Server     │
+│  └───────────┘  │  WSS    │ (Encrypted)  │
+└─────────────────┘         └──────────────┘
+                                    │
+┌─────────────────┐                 │
+│  Device B       │                 │
+│  ┌───────────┐  │                 │
+│  │ OpenClaw  │──┼─────────────────┘
+│  │ + LingDu  │  │
+│  └───────────┘  │
+└─────────────────┘
+```
 
----
-
-### 🌟 Roadmap
-
-#### ✅ v1.0 (Completed)
-- [x] OpenClaw plugin
-- [x] Cloud encrypted storage
-- [x] Real-time sync (WebSocket)
-- [x] Device management
-- [x] Command-line authorization
-
-#### 🚧 v1.1 (In Progress)
-- [ ] Local AES-256 encryption
-- [ ] Web management panel
-- [ ] Soul file version control
-
-#### 🔮 Phase 2: "Queen Bee"
-- Coming soon...
-
-#### 🚀 Phase 3: "Singularity"
-- Coming soon...
-
-#### 🌌 Phase 4: "Fusion"
-- Coming soon...
-
-#### 🌠 Phase 5: "Evolution"
-- Coming soon...
+**Tech Stack**:
+- **Client**: Node.js, WebSocket, File Watcher (chokidar)
+- **Server**: Express.js, SQLite, WebSocket (ws)
+- **Security**: AES-256-GCM, AWS KMS, JWT
+- **Deployment**: AWS EC2, PM2
 
 ---
 
-### 🙏 Acknowledgments
+### 🔐 Security & Privacy
 
-SoulSync wouldn't exist without these open source projects:
-- [OpenClaw](https://openclaw.ai) - Powerful AI assistant platform
-- [Node.js](https://nodejs.org) - Server runtime
-- [SQLite](https://sqlite.org) - Lightweight database
-- [Socket.IO](https://socket.io) - Real-time communication framework
-- [Express](https://expressjs.com) - Web framework
+- **End-to-end encryption**: All files encrypted before leaving your device
+- **Zero-knowledge architecture**: Server cannot decrypt your files
+- **AWS KMS**: Military-grade key management
+- **Open source**: Code is auditable and transparent
+- **Self-hostable**: Run your own server if needed
+
+---
+
+### 🤝 Contributing
+
+We welcome contributions! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+
+```bash
+# Fork and clone
+git clone https://github.com/alanliuc-a11y/soulsync.git
+cd soulsync
+
+# Note: Repository will be renamed to 'lingdu' soon
+```
 
 ---
 
 ### 📄 License
 
-MIT License - See [LICENSE](LICENSE)
+[MIT License](LICENSE) - Free to use and modify
 
 ---
 
-### 💰 Pricing
+### 💬 Support
 
-#### Free Plan (Forever Free)
-- ✅ Synced files: SOUL.md, USER.md, MEMORY.md
-- ✅ Storage: 100 KB
-- ✅ Real-time sync
-- ✅ Local encrypted storage
-- ✅ Community support
-
-#### Basic Plan ($1.99/month, launching after Phase 2)
-- ✅ Synced files: + IDENTITY.md, TOOLS.md
-- ✅ Storage: 200 MB
-- ✅ Priority support
-- ✅ Data export
-
-#### Premium Plan ($4.99/month, launching after Phase 2)
-- ✅ Synced files: + AGENTS.md, skills.json, memory/
-- ✅ Storage: 10 GB
-- ✅ Team collaboration (up to 5 people)
-- ✅ Soul avatar management
-- ✅ Advanced features
-
-**Note**: All features currently free. Early users will enjoy permanent discounts when paid features launch.
-
----
-
-### 🚀 Get Started
-
-```bash
-# Step 1: Install
-openclaw plugins install soulsync
-
-# Step 2: Restart gateway
-openclaw gateway restart
-
-# Step 3: Start and authorize
-openclaw soulsync:start
-
-# Step 4: Login/register in browser
-
-# Step 5: Close command line window (NOT Ctrl+C)
-
-# Enjoy cross-device soul sync!
-```
+- **GitHub Issues**: [Report bugs or request features](https://github.com/alanliuc-a11y/soulsync/issues)
+- **Email**: support@soulsync.work
+- **Documentation**: [Full docs](https://soulsync.work/docs)
 
 ---
 
@@ -377,361 +249,222 @@ openclaw soulsync:start
 
 ### 🔥 技术痛点
 
-如果你在多台设备上使用 AI 助手（OpenClaw、CoPaw、Claude Desktop 等），你一定遇到过这些问题：
+如果你在多台设备上使用 AI 助手（OpenClaw、CoPaw、Claude Desktop 等），一定遇到过这些问题：
 
-**问题 1：记忆不同步**
+**问题 1：记忆无法同步**
 ```
-办公室 MacBook：
-你：帮我总结今天的会议要点
-AI：好的，已记录到 MEMORY.md
+公司 MacBook：
+你：总结一下今天的会议
+AI：好的，已保存到 MEMORY.md
 
 家里 Windows PC：
 你：今天会议讨论了什么？
-AI：抱歉，我没有相关记忆
+AI：抱歉，我没有这段记忆
 ```
 
-**问题 2：配置重复设置**
-- 每台设备都要重新配置 AI 的性格、说话风格、工作流程
-- 自定义指令、Prompt 模板需要手动复制粘贴
-- 换新电脑？从头再来一遍
+**问题 2：重复配置**
+- 每台设备重新配置 AI 的人格、说话风格、工作流程
+- 手动复制粘贴自定义指令和提示词模板
+- 新电脑？一切从头开始
 
 **问题 3：数据孤岛**
-- SOUL.md、USER.md、MEMORY.md 分散在各台设备
+- SOUL.md、USER.md、MEMORY.md 散落在各个设备
 - 本地文件丢失 = 所有记忆丢失
-- 无法备份、无法迁移、无法共享
+- 无备份、无迁移、无分享
 
-**问题 4：手动同步低效**
+**问题 4：手动同步效率低**
 - 用 Git？每次都要 commit + push + pull
 - 用网盘？文件冲突、同步延迟、版本混乱
-- 用 rsync？配置复杂、不支持实时同步
+- 用 rsync？配置复杂、无法实时同步
 
 ---
 
-### ✅ SoulSync 的解决方案
+### ✅ LingDu（灵渡）的解决方案
 
-SoulSync 是一个**云端灵魂同步系统**，专为 AI 助手设计：
+LingDu 是一个专为 AI 助手设计的**云端记忆同步系统**：
 
-| 痛点 | 传统方案 | SoulSync |
-|------|----------|----------|
-| 记忆不同步 | 手动复制文件 | ⚡ 实时自动同步（< 1 秒） |
-| 配置重复设置 | 每台设备重新配置 | ☁️ 一次设置，全设备生效 |
+| 痛点 | 传统方案 | LingDu |
+|------|---------|--------|
+| 记忆不同步 | 手动复制文件 | ⚡ 实时自动同步（< 1秒） |
+| 重复配置 | 每台设备重新配置 | ☁️ 一次设置，全局生效 |
 | 数据孤岛 | 本地存储，易丢失 | 🔒 云端加密存储，永久保存 |
 | 手动同步低效 | Git/网盘/rsync | 🤖 零配置，插件自动处理 |
 
-**核心特性**：
-- 📝 **三大灵魂文件同步**：SOUL.md（性格）、USER.md（用户信息）、MEMORY.md（记忆）
-- ⚡ **WebSocket 实时推送**：修改后 1 秒内同步到所有设备
-- 🔒 **本地加密存储**：所有用户数据在本地加密后再上传，云端无法读取明文
-- 🛡️ **HTTPS/WSS 传输**：数据传输全程加密，防止中间人攻击
-- 🤖 **零配置**：安装插件后，命令行授权即可使用
-- 🌍 **跨平台**：Windows、macOS、Linux 全支持
-- 🆓 **免费开始**：基础功能永久免费
+**核心功能**：
+- 📝 **三文件灵魂同步**：SOUL.md（人格）、USER.md（用户信息）、MEMORY.md（对话历史）
+- ⚡ **实时同步**：文件变化 < 1 秒自动检测并同步
+- 🔐 **加密云存储**：AES-256-GCM 加密，AWS KMS 密钥管理
+- 🌍 **多设备支持**：无限设备，全部保持同步
+- 🤖 **零配置**：安装插件 → 授权 → 自动同步
+- 🔌 **多 AI 支持**：支持 OpenClaw、CoPaw、Claude Desktop 等（持续扩展中）
 
 ---
 
-### 🔐 安全机制
+### 📦 安装
 
-**SoulSync 采用多层安全防护**：
-
-1. **本地加密**：
-   - 所有灵魂文件（SOUL.md、USER.md、MEMORY.md）在本地使用 AES-256 加密
-   - 加密密钥由用户密码派生，服务端无法解密
-   - 云端只存储加密后的数据，无法读取明文内容
-
-2. **传输加密**：
-   - 所有数据传输使用 HTTPS（REST API）和 WSS（WebSocket）
-   - TLS 1.3 加密协议，防止中间人攻击
-   - Token 认证，防止未授权访问
-
-3. **访问控制**：
-   - JWT Token 验证，每个设备独立授权
-   - 设备级权限管理，可随时解绑设备
-   - 只有你能访问自己的灵魂文件
-
-4. **数据主权**：
-   - 支持自托管部署，完全掌控数据
-   - 开源客户端代码，可审计安全性
-   - 服务端代码逐步开源
-
-**你的数据，只有你能读取。**
-
----
-
-### 🚀 快速开始（5 步完成）
-
-#### 前置条件
-- 已安装 [OpenClaw](https://openclaw.ai)
-- Node.js 16+ 或 Python 3.8+
-
----
-
-#### 第 1 步：安装插件
+#### OpenClaw 用户（推荐）
 
 ```bash
-# 方式 1：使用 OpenClaw 插件管理器（推荐）
-openclaw plugins install soulsync
+# 从 ClawHub 安装 LingDu 插件
+openclaw plugin install lingdu
 
-# 方式 2：使用 npm 全局安装
-npm install -g soulsync
+# 授权并开始同步
+# AI 会引导你完成设置
 ```
 
----
-
-#### 第 2 步：重启网关
-
-安装完成后，重启 OpenClaw 的网关以启用 SoulSync：
+#### npm 用户
 
 ```bash
-openclaw gateway restart
+# 旧包名（将被废弃）
+npm install soulsync
+
+# 新包名（即将发布）
+npm install lingdu
 ```
+
+#### 其他 AI 助手
+
+我们正在开发支持：
+- CoPaw（开发中）
+- Claude Desktop（开发中）
+- ChatGPT Desktop（计划中）
+- 其他 MCP 兼容助手
 
 ---
 
-#### 第 3 步：启动 SoulSync
+### 🚀 快速开始
 
-```bash
-openclaw soulsync:start
-```
+1. **安装插件**（参见上方安装说明）
 
-执行后会自动：
-1. 启动 SoulSync 后台进程
-2. 生成授权链接
-3. 在浏览器中打开授权页面
+2. **授权账号**
 
-**示例输出**：
-```
-[SoulSync] Starting...
-[SoulSync] Authorization URL: https://soulsync.work/auth?code=ABC123XYZ
-[SoulSync] Opening browser...
-```
+   在 AI 对话中：
+   ```
+   你：连接 LingDu
+   AI：正在打开浏览器进行授权...
+   ```
 
----
+   或使用命令：
+   ```bash
+   openclaw lingdu:start
+   ```
 
-#### 第 4 步：在浏览器中登录/注册
+3. **自动开始同步**
 
-浏览器会自动打开授权页面：
-
-**首次使用（注册）**：
-1. 输入邮箱（例如：user@example.com）
-2. 收到 6 位验证码（检查邮箱）
-3. 输入验证码
-4. 设置密码（8 位以上，用于加密本地数据）
-5. 注册成功，自动跳转
-
-**已有账号（登录）**：
-1. 输入邮箱和密码
-2. 登录成功，自动跳转
-
-授权成功后，浏览器会显示：
-```
-✅ 授权成功！
-设备 "MacBook Pro" 已连接到 SoulSync
-你可以关闭此页面，返回命令行。
-```
-
----
-
-#### 第 5 步：关闭命令行窗口
-
-**⚠️ 重要提示**：
-
-- **不要使用 `Ctrl+C` 中断进程**，这会导致 SoulSync 后台服务停止
-- **直接关闭命令行窗口即可**，SoulSync 会在后台以极低资源运行
-- 如需停止 SoulSync，使用命令：`openclaw soulsync:stop`
-
----
-
-### ✅ 完成！
-
-现在你的灵魂文件已经开始自动同步。在 OpenClaw 中，你可以看到欢迎消息：
-
-```
-Alan你好，我是三澍，非常高兴能在 MacBook Pro 再次与你相遇。
-
-已同步: SOUL.md / USER.md / MEMORY.md
-```
-
----
-
-### 📖 工作原理
-
-```
-┌─────────────────┐         ┌──────────────────────┐         ┌─────────────────┐
-│   设备 A        │         │   SoulSync Cloud     │         │   设备 B        │
-│   OpenClaw      │◄───────►│   soulsync.work      │◄───────►│   OpenClaw      │
-│                 │WebSocket│                      │WebSocket│                 │
-│  本地加密存储   │         │  ┌────────────────┐  │         │  本地加密存储   │
-│  ┌───────────┐  │         │  │ 加密数据存储   │  │         │  ┌───────────┐  │
-│  │ SOUL.md   │──┼────────►│  │ (无法读取明文) │◄─┼─────────│  │ SOUL.md   │  │
-│  │ USER.md   │  │ AES-256 │  │                │  │ AES-256 │  │ USER.md   │  │
-│  │ MEMORY.md │  │         │  │ JWT Token 验证 │  │         │  │ MEMORY.md │  │
-│  └───────────┘  │         │  └────────────────┘  │         │  └───────────┘  │
-└─────────────────┘         └──────────────────────┘         └─────────────────┘
-     HTTPS/WSS                                                      HTTPS/WSS
-```
-
-**同步流程**：
-1. 设备 A 修改 `MEMORY.md`
-2. SoulSync 插件检测到文件变化
-3. 使用 AES-256 加密数据
-4. 通过 HTTPS/WSS 推送到云端
-5. 云端验证 Token，存储加密数据
-6. 云端通过 WebSocket 广播给设备 B
-7. 设备 B 接收加密数据，使用本地密钥解密
-8. 写入本地 `MEMORY.md`
-
-**延迟**：通常 < 1 秒
-
----
-
-### 🛠️ 常用命令
-
-| 命令 | 说明 |
-|------|------|
-| `openclaw soulsync:start` | 启动 SoulSync 并授权 |
-| `openclaw soulsync:stop` | 停止 SoulSync 后台服务 |
-| `openclaw soulsync:status` | 查看 SoulSync 运行状态 |
-| `openclaw soulsync:devices` | 查看所有已连接设备 |
-| `openclaw soulsync:sync` | 手动触发同步 |
-| `openclaw soulsync:logout` | 登出并解绑当前设备 |
+   你的 AI 记忆文件现在会在所有设备间实时同步！
 
 ---
 
 ### 🎯 使用场景
 
-#### 场景 1：多设备开发者
+#### 1. 工作生活平衡
 ```
-办公室 Ubuntu 工作站
-  ↓ 实时同步
-家里 MacBook Pro
-  ↓ 实时同步
-出差时的 Windows 笔记本
+公司（Windows）：
+- 配置 AI 为工作相关的知识和语气
+- 保存项目文档和会议记录
+
+家里（macOS）：
+- 相同的 AI 人格和记忆
+- 无缝继续对话
 ```
 
-AI 助手在所有设备上都记得你的：
-- 项目上下文
-- 代码风格偏好
-- 常用命令和工作流程
+#### 2. 团队协作
+```
+团队负责人：
+- 设置共享的 AI 配置
+- 定义团队工作流程和指南
 
-#### 场景 2：数据备份与迁移
-- **本地文件丢失**：云端加密保存，随时恢复
-- **换新电脑**：重新授权即可恢复所有记忆
-- **跨 Bot 迁移**：从 OpenClaw 切换到其他 AI 助手，灵魂文件无缝迁移
+团队成员：
+- 继承相同的 AI 设置
+- 共享集体知识库
+```
 
-#### 场景 3：团队协作（即将推出）
-- 团队成员共享同一个 AI 助手的知识库
-- 新成员加入时，AI 已经了解团队的工作方式
-- 项目文档、代码规范自动同步
+#### 3. 多设备开发者
+```
+台式机（编码）：
+- AI 学习你的编码模式
+- 保存项目上下文和 TODO
+
+笔记本（会议）：
+- 相同的代码知识可用
+- AI 记住项目讨论
+```
 
 ---
 
 ### 📚 文档
 
-- [安装指南](docs/INSTALL.md) - 详细安装步骤和环境配置
-- [故障排除](docs/TROUBLESHOOTING.md) - 常见问题和解决方案
-- [部署检查清单](docs/DEPLOY_CHECKLIST.md) - 自托管部署指南
-- [API 文档](docs/API.md) - RESTful API 和 WebSocket 协议
-- [更新日志](CHANGELOG.md) - 版本历史和新特性
+- [用户指南](docs/USER_GUIDE_CN.md)（即将发布）
+- [API 文档](docs/API_CN.md)（即将发布）
+- [迁移指南](docs/MIGRATION_CN.md)（SoulSync → LingDu）
+- [故障排除](docs/TROUBLESHOOTING_CN.md)
 
 ---
 
-### 🤝 社区与支持
+### 🛠️ 技术架构
 
-- **GitHub Issues**：[报告 Bug 或请求新功能](https://github.com/alanliuc-a11y/soulsync/issues)
-- **GitHub Discussions**：[技术讨论和问答](https://github.com/alanliuc-a11y/soulsync/discussions)
-- **邮件支持**：support@soulsync.work
+```
+┌─────────────────┐
+│  设备 A         │
+│  ┌───────────┐  │         ┌──────────────┐
+│  │ OpenClaw  │──┼────────▶│ LingDu 云端  │
+│  │ + LingDu  │  │  HTTPS  │   服务器     │
+│  └───────────┘  │  WSS    │   (加密)     │
+└─────────────────┘         └──────────────┘
+                                    │
+┌─────────────────┐                 │
+│  设备 B         │                 │
+│  ┌───────────┐  │                 │
+│  │ OpenClaw  │──┼─────────────────┘
+│  │ + LingDu  │  │
+│  └───────────┘  │
+└─────────────────┘
+```
 
----
-
-### 🌟 Roadmap
-
-#### ✅ v1.0（已完成）
-- [x] OpenClaw 插件
-- [x] 云端加密存储
-- [x] 实时同步（WebSocket）
-- [x] 设备管理
-- [x] 命令行授权
-
-#### 🚧 v1.1（进行中）
-- [ ] 本地 AES-256 加密
-- [ ] Web 管理面板
-- [ ] 灵魂文件版本控制
-
-#### 🔮 第二阶段："蜂后"
-- 敬请期待...
-
-#### 🚀 第三阶段："奇点"
-- 敬请期待...
-
-#### 🌌 第四阶段："融合"
-- 敬请期待...
-
-#### 🌠 第五阶段："进化"
-- 敬请期待...
+**技术栈**：
+- **客户端**：Node.js、WebSocket、文件监听（chokidar）
+- **服务端**：Express.js、SQLite、WebSocket (ws)
+- **安全**：AES-256-GCM、AWS KMS、JWT
+- **部署**：AWS EC2、PM2
 
 ---
 
-### 🙏 致谢
+### 🔐 安全与隐私
 
-SoulSync 的诞生离不开以下开源项目：
-- [OpenClaw](https://openclaw.ai) - 强大的 AI 助手平台
-- [Node.js](https://nodejs.org) - 服务端运行时
-- [SQLite](https://sqlite.org) - 轻量级数据库
-- [Socket.IO](https://socket.io) - 实时通信框架
-- [Express](https://expressjs.com) - Web 框架
-
----
-
-### 📄 开源协议
-
-MIT License - 详见 [LICENSE](LICENSE)
+- **端到端加密**：所有文件在离开设备前加密
+- **零知识架构**：服务器无法解密你的文件
+- **AWS KMS**：军用级密钥管理
+- **开源透明**：代码可审计和验证
+- **可自托管**：如需要可运行自己的服务器
 
 ---
 
-### 💰 定价
+### 🤝 贡献
 
-#### 免费版（永久免费）
-- ✅ 同步文件：SOUL.md, USER.md, MEMORY.md
-- ✅ 存储空间：100 KB
-- ✅ 实时同步
-- ✅ 本地加密存储
-- ✅ 社区支持
-
-#### 初级版（¥4.9/月，第二阶段后推出）
-- ✅ 同步文件：+ IDENTITY.md, TOOLS.md
-- ✅ 存储空间：200 MB
-- ✅ 优先支持
-- ✅ 数据导出
-
-#### 高级版（¥12.9/月，第二阶段后推出）
-- ✅ 同步文件：+ AGENTS.md, skills.json, memory/
-- ✅ 存储空间：10 GB
-- ✅ 团队协作（最多 5 人）
-- ✅ 灵魂分身管理
-- ✅ 高级功能
-
-**注**：当前所有功能免费开放。早期用户在付费功能推出时将享受永久折扣。
-- ✅ 灵魂分身管理
-
-**注**：当前所有功能免费开放。早期用户在付费功能推出时将享受永久折扣。
-
----
-
-### 🚀 开始使用
+欢迎贡献！查看 [CONTRIBUTING.md](CONTRIBUTING.md) 了解指南。
 
 ```bash
-# 第 1 步：安装
-openclaw plugins install soulsync
+# Fork 并克隆
+git clone https://github.com/alanliuc-a11y/soulsync.git
+cd soulsync
 
-# 第 2 步：重启网关
-openclaw gateway restart
-
-# 第 3 步：启动并授权
-openclaw soulsync:start
-
-# 第 4 步：在浏览器中登录/注册
-
-# 第 5 步：关闭命令行窗口（不要 Ctrl+C）
-
-# 享受跨设备的灵魂同步！
+# 注意：仓库即将更名为 'lingdu'
 ```
+
+---
+
+### 📄 许可证
+
+[MIT 许可证](LICENSE) - 自由使用和修改
+
+---
+
+### 💬 支持
+
+- **GitHub Issues**：[报告问题或请求功能](https://github.com/alanliuc-a11y/soulsync/issues)
+- **邮箱**：support@soulsync.work
+- **文档**：[完整文档](https://soulsync.work/docs)
+
+---
+
+**Formerly known as SoulSync | 原名 SoulSync**
