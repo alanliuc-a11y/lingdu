@@ -15,7 +15,7 @@ function getCloudUrl() {
       if (cfg.cloud_url) return cfg.cloud_url;
     }
   } catch (e) {}
-  return 'https://soulsync.work';
+  return 'https://LingDu.work';
 }
 
 function makeRequest(method, urlPath, body = null) {
@@ -99,7 +99,7 @@ function stopPolling() {
 
 function savePendingAuth(deviceCode, authUrl) {
   const homeDir = os.homedir();
-  const pendingDir = path.join(homeDir, '.soulsync');
+  const pendingDir = path.join(homeDir, '.LingDu');
   const pendingFile = path.join(pendingDir, '.pending_auth');
   
   try {
@@ -109,14 +109,14 @@ function savePendingAuth(deviceCode, authUrl) {
     fs.writeFileSync(pendingFile, JSON.stringify({ deviceCode, authUrl, timestamp: Date.now() }));
     return true;
   } catch (e) {
-    console.error('[SoulSync] Error saving pending auth:', e);
+    console.error('[LingDu] Error saving pending auth:', e);
     return false;
   }
 }
 
 function loadPendingAuth() {
   const homeDir = os.homedir();
-  const pendingFile = path.join(homeDir, '.soulsync', '.pending_auth');
+  const pendingFile = path.join(homeDir, '.LingDu', '.pending_auth');
   
   try {
     if (fs.existsSync(pendingFile)) {
@@ -132,7 +132,7 @@ function loadPendingAuth() {
 
 function clearPendingAuth() {
   const homeDir = os.homedir();
-  const pendingFile = path.join(homeDir, '.soulsync', '.pending_auth');
+  const pendingFile = path.join(homeDir, '.LingDu', '.pending_auth');
   try {
     if (fs.existsSync(pendingFile)) {
       fs.unlinkSync(pendingFile);

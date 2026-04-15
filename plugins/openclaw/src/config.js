@@ -26,7 +26,7 @@ function loadConfig() {
       return config;
     }
   } catch (e) {
-    console.error('[SoulSync] Error loading config:', e);
+    console.error('[LingDu] Error loading config:', e);
   }
   return null;
 }
@@ -48,7 +48,7 @@ function saveConfig(newConfig) {
     fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
     return true;
   } catch (e) {
-    console.error('[SoulSync] Error saving config:', e);
+    console.error('[LingDu] Error saving config:', e);
     return false;
   }
 }
@@ -69,7 +69,7 @@ function clearConfig() {
     }
     return true;
   } catch (e) {
-    console.error('[SoulSync] Error clearing config:', e);
+    console.error('[LingDu] Error clearing config:', e);
     return false;
   }
 }
@@ -92,7 +92,7 @@ function getDeviceName(deviceType = 'local') {
     return `${type} Bot`;
   }
 
-  return `${username}çš„${type}`;
+  return `${username}çš?{type}`;
 }
 
 function isAuthenticated() {

@@ -36,9 +36,9 @@ class SyncEngine extends EventEmitter {
   }
 
   async initialize() {
-    console.log('[SoulSync] Initializing sync engine...');
-    console.log(`[SoulSync] Profiles directory: ${this.profilesDir}`);
-    console.log(`[SoulSync] Device ID: ${this.deviceIdShort}`);
+    console.log('[LingDu] Initializing sync engine...');
+    console.log(`[LingDu] Profiles directory: ${this.profilesDir}`);
+    console.log(`[LingDu] Device ID: ${this.deviceIdShort}`);
 
     const result = await this.api.getProfiles();
     const serverContent = (result.status === 200 && result.body && result.body.content) ? result.body.content : {};
@@ -50,12 +50,12 @@ class SyncEngine extends EventEmitter {
     const sceneResult = await this.handleScene(scene, serverContent);
 
     if (sceneResult && !sceneResult.success) {
-      console.log(`[SoulSync] ${sceneResult.message}`);
+      console.log(`[LingDu] ${sceneResult.message}`);
     }
 
     await this.connectWebSocket();
 
-    console.log(`[SoulSync] Sync engine initialized - localVersion: ${this.localVersion}, serverVersion: ${this.serverVersion}`);
+    console.log(`[LingDu] Sync engine initialized - localVersion: ${this.localVersion}, serverVersion: ${this.serverVersion}`);
     return sceneResult;
   }
 
@@ -95,8 +95,8 @@ class SyncEngine extends EventEmitter {
       scene = SCENE_NO_DATA;
     }
 
-    console.log(`[SoulSync] Scene detected: ${scene}`);
-    console.log(`[SoulSync] Local non-empty: ${localNonEmptyCount}, Server has data: ${serverHasNonEmptyData}`);
+    console.log(`[LingDu] Scene detected: ${scene}`);
+    console.log(`[LingDu] Local non-empty: ${localNonEmptyCount}, Server has data: ${serverHasNonEmptyData}`);
 
     return { scene, localFileStates };
   }
@@ -104,23 +104,23 @@ class SyncEngine extends EventEmitter {
   async handleScene(scene, serverContent) {
     switch (scene) {
       case SCENE_FIRST_DEVICE:
-        console.log('[SoulSync] Uploading local data to cloud (first device)');
+        console.log('[LingDu] Uploading local data to cloud (first device)');
         await this.uploadAll();
-        return { success: true, message: '已将本地灵魂数据上传至云端，完成初始化' };
+        return { success: true, message: '已将本地灵魂数据上传至云端，完成初始�? };
 
       case SCENE_EMPTY_DEVICE:
-        console.log('[SoulSync] Downloading cloud data to local (empty device)');
+        console.log('[LingDu] Downloading cloud data to local (empty device)');
         await this.downloadAll();
         return { success: true, message: '已从云端拉取最新配置，设备已对齐全局基准' };
 
       case SCENE_USED_DEVICE:
-        console.log('[SoulSync] Merging local and cloud data (used device)');
+        console.log('[LingDu] Merging local and cloud data (used device)');
         await this.mergeAll(serverContent);
-        return { success: true, message: '本地数据与云端数据已安全合并，历史内容均已保留' };
+        return { success: true, message: '本地数据与云端数据已安全合并，历史内容均已保�? };
 
       case SCENE_NO_DATA:
-        console.log('[SoulSync] No data available');
-        return { success: false, message: '未检测到灵魂数据，请初始化 OpenClaw 配置后重试' };
+        console.log('[LingDu] No data available');
+        return { success: false, message: '未检测到灵魂数据，请初始�?OpenClaw 配置后重�? };
 
       default:
         return { success: false, message: 'Unknown scene' };
@@ -129,20 +129,20 @@ class SyncEngine extends EventEmitter {
 
   async downloadAll() {
     try {
-      console.log('[SoulSync] downloadAll() called');
+      console.log('[LingDu] downloadAll() called');
 
       const result = await this.api.getProfiles();
-      console.log(`[SoulSync] API getProfiles response:`, JSON.stringify(result).substring(0, 200));
+      console.log(`[LingDu] API getProfiles response:`, JSON.stringify(result).substring(0, 200));
 
       if (result.status === 200 && result.body) {
         const profile = result.body;
-        console.log(`[SoulSync] Profile:`, JSON.stringify(profile).substring(0, 200));
+        console.log(`[LingDu] Profile:`, JSON.stringify(profile).substring(0, 200));
 
         if (profile.content) {
           const { scene } = this.detectScene(profile.content);
 
           if (scene === SCENE_NO_DATA) {
-            console.log('[SoulSync] No data in cloud');
+            console.log('[LingDu] No data in cloud');
             this.serverVersion = profile.version || 0;
             this.localVersion = this.getLocalVersion();
             return;
@@ -155,22 +155,22 @@ class SyncEngine extends EventEmitter {
           } else if (scene === SCENE_USED_DEVICE) {
             await this.mergeAll(profile.content);
           } else if (scene === SCENE_FIRST_DEVICE) {
-            console.log('[SoulSync] First device - uploading local data');
+            console.log('[LingDu] First device - uploading local data');
           }
 
           this.serverVersion = profile.version || 0;
           this.localVersion = this.getLocalVersion();
-          console.log(`[SoulSync] Updated versions - server: ${this.serverVersion}, local: ${this.localVersion}`);
+          console.log(`[LingDu] Updated versions - server: ${this.serverVersion}, local: ${this.localVersion}`);
         } else {
-          console.log('[SoulSync] No content in profile');
+          console.log('[LingDu] No content in profile');
           this.localVersion = this.getLocalVersion();
         }
       } else {
-        console.log(`[SoulSync] getProfiles failed: ${result.status}`);
+        console.log(`[LingDu] getProfiles failed: ${result.status}`);
         this.localVersion = this.getLocalVersion();
       }
     } catch (e) {
-      console.error('[SoulSync] downloadAll error:', e.message);
+      console.error('[LingDu] downloadAll error:', e.message);
       this.localVersion = this.getLocalVersion();
     }
   }
@@ -326,13 +326,13 @@ class SyncEngine extends EventEmitter {
     ];
 
     for (const { name, label } of fieldDefs) {
-      const valuePattern = new RegExp(`^[#\\s]*${label}[：:]\\s*(.+?)\\s*$`, 'im');
+      const valuePattern = new RegExp(`^[#\\s]*${label}[�?]\\s*(.+?)\\s*$`, 'im');
       const valueMatch = content.match(valuePattern);
 
-      const lastModifiedPattern = new RegExp(`^${name}_last_modified[：:]\\s*(\\d{4}-\\d{2}-\\d{2}\\s+\\d{2}:\\d{2}:\\d{2})`, 'im');
+      const lastModifiedPattern = new RegExp(`^${name}_last_modified[�?]\\s*(\\d{4}-\\d{2}-\\d{2}\\s+\\d{2}:\\d{2}:\\d{2})`, 'im');
       const lastModifiedMatch = content.match(lastModifiedPattern);
 
-      const devicePattern = new RegExp(`^${name}_modified_device[：:]\\s*(.+?)\\s*$`, 'im');
+      const devicePattern = new RegExp(`^${name}_modified_device[�?]\\s*(.+?)\\s*$`, 'im');
       const deviceMatch = content.match(devicePattern);
 
       if (valueMatch) {
@@ -361,7 +361,7 @@ class SyncEngine extends EventEmitter {
   }
 
   extractTimestamp(content) {
-    const timeMatch = content.match(/最后更新[：:]\s*(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2})/);
+    const timeMatch = content.match(/最后更新[�?]\s*(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2})/);
     if (timeMatch) {
       return this.parseTimestamp(timeMatch[1]);
     }
@@ -399,7 +399,7 @@ class SyncEngine extends EventEmitter {
       const label = fieldLabels[field];
       if (label && data?.value) {
         const timestamp = this.formatTimestamp(data.last_modified);
-        content += `${label}：${data.value}\n`;
+        content += `${label}�?{data.value}\n`;
         if (timestamp) {
           content += `最后更新：${timestamp}\n`;
         }
@@ -427,7 +427,7 @@ class SyncEngine extends EventEmitter {
     }
 
     fs.writeFileSync(filePath, content, 'utf-8');
-    console.log(`[SoulSync] Written: ${filename} (${content.length} chars)`);
+    console.log(`[LingDu] Written: ${filename} (${content.length} chars)`);
   }
 
   async createBackup(filename) {
@@ -442,11 +442,11 @@ class SyncEngine extends EventEmitter {
 
     try {
       fs.copyFileSync(filePath, backupPath);
-      console.log(`[SoulSync] Backup created: ${backupName}`);
+      console.log(`[LingDu] Backup created: ${backupName}`);
 
       await this.cleanOldBackups(filename);
     } catch (e) {
-      console.error(`[SoulSync] Failed to create backup: ${e.message}`);
+      console.error(`[LingDu] Failed to create backup: ${e.message}`);
     }
   }
 
@@ -476,9 +476,9 @@ class SyncEngine extends EventEmitter {
       for (const backup of toDelete) {
         try {
           fs.unlinkSync(backup.path);
-          console.log(`[SoulSync] Deleted old backup: ${backup.name}`);
+          console.log(`[LingDu] Deleted old backup: ${backup.name}`);
         } catch (e) {
-          console.error(`[SoulSync] Failed to delete backup: ${e.message}`);
+          console.error(`[LingDu] Failed to delete backup: ${e.message}`);
         }
       }
     }
@@ -497,31 +497,31 @@ class SyncEngine extends EventEmitter {
         const newVersion = result.body.version || this.serverVersion + 1;
         this.localVersion = newVersion;
         this.serverVersion = newVersion;
-        console.log(`[SoulSync] Uploaded all (version ${this.serverVersion})`);
+        console.log(`[LingDu] Uploaded all (version ${this.serverVersion})`);
       } else if (result.status === 409) {
-        console.log('[SoulSync] Conflict on uploadAll, merging...');
+        console.log('[LingDu] Conflict on uploadAll, merging...');
         const serverResult = await this.api.getProfiles();
         if (serverResult.status === 200 && serverResult.body) {
           await this.mergeAll(serverResult.body.content);
         }
       }
     } catch (e) {
-      console.error(`[SoulSync] Failed to upload all: ${e.message}`);
+      console.error(`[LingDu] Failed to upload all: ${e.message}`);
     }
   }
 
   async uploadFile(filename) {
     try {
       if (this.isBackupFile(filename)) {
-        console.log(`[SoulSync] Skipping backup file: ${filename}`);
+        console.log(`[LingDu] Skipping backup file: ${filename}`);
         return;
       }
 
-      console.log(`[SoulSync] uploadFile() called for: ${filename}`);
+      console.log(`[LingDu] uploadFile() called for: ${filename}`);
       const filePath = path.join(this.profilesDir, filename);
 
       if (!fs.existsSync(filePath)) {
-        console.log(`[SoulSync] File not found: ${filename}`);
+        console.log(`[LingDu] File not found: ${filename}`);
         return;
       }
 
@@ -535,13 +535,13 @@ class SyncEngine extends EventEmitter {
         const newVersion = result.body.version || this.serverVersion + 1;
         this.localVersion = newVersion;
         this.serverVersion = newVersion;
-        console.log(`[SoulSync] Uploaded: ${filename} (version ${this.serverVersion})`);
+        console.log(`[LingDu] Uploaded: ${filename} (version ${this.serverVersion})`);
       } else if (result.status === 409) {
-        console.log(`[SoulSync] Conflict detected for: ${filename}`);
+        console.log(`[LingDu] Conflict detected for: ${filename}`);
         await this.handleConflict(filename);
       }
     } catch (e) {
-      console.error(`[SoulSync] Failed to upload ${filename}:`, e.message);
+      console.error(`[LingDu] Failed to upload ${filename}:`, e.message);
     }
   }
 
@@ -552,12 +552,12 @@ class SyncEngine extends EventEmitter {
         const content = result.body.content[filename];
         if (content) {
           await this.writeFileSafe(filename, content);
-          console.log(`[SoulSync] Downloaded: ${filename}`);
+          console.log(`[LingDu] Downloaded: ${filename}`);
           return true;
         }
       }
     } catch (e) {
-      console.error(`[SoulSync] Failed to download ${filename}: ${e.message}`);
+      console.error(`[LingDu] Failed to download ${filename}: ${e.message}`);
     }
     return false;
   }
@@ -588,7 +588,7 @@ class SyncEngine extends EventEmitter {
         const localContent = fs.existsSync(localPath) ? fs.readFileSync(localPath, 'utf-8') : '';
         const merged = await this.mergeFile(filename, localContent, serverContent);
         await this.writeFileSafe(filename, merged);
-        console.log(`[SoulSync] Conflict resolved for: ${filename}`);
+        console.log(`[LingDu] Conflict resolved for: ${filename}`);
       }
     }
   }
@@ -615,7 +615,7 @@ class SyncEngine extends EventEmitter {
       if (!SYNC_FILES.includes(filename)) {
         return;
       }
-      console.log(`[SoulSync] File changed: ${filename}`);
+      console.log(`[LingDu] File changed: ${filename}`);
       await this.uploadFile(filename);
     });
 
@@ -627,23 +627,23 @@ class SyncEngine extends EventEmitter {
       if (!SYNC_FILES.includes(filename)) {
         return;
       }
-      console.log(`[SoulSync] File added: ${filename}`);
+      console.log(`[LingDu] File added: ${filename}`);
       await this.uploadFile(filename);
     });
 
     this.watcher.on('unlink', (filePath) => {
       const filename = path.basename(filePath);
-      console.log(`[SoulSync] File removed: ${filename}`);
+      console.log(`[LingDu] File removed: ${filename}`);
     });
 
-    console.log('[SoulSync] Started watching profiles directory');
+    console.log('[LingDu] Started watching profiles directory');
   }
 
   stopWatching() {
     if (this.watcher) {
       this.watcher.close();
       this.watcher = null;
-      console.log('[SoulSync] Stopped watching');
+      console.log('[LingDu] Stopped watching');
     }
   }
 
@@ -658,7 +658,7 @@ class SyncEngine extends EventEmitter {
 
       this.ws.on('open', () => {
         this.connected = true;
-        console.log('[SoulSync] WebSocket connected');
+        console.log('[LingDu] WebSocket connected');
         this.startWatching();
         this.startHeartbeat();
       });
@@ -667,27 +667,27 @@ class SyncEngine extends EventEmitter {
         try {
           const msg = JSON.parse(data);
           if (msg.type === 'pong') {
-            console.log('[SoulSync] Heartbeat received');
+            console.log('[LingDu] Heartbeat received');
           } else {
             await this.handleWebSocketMessage(msg);
           }
         } catch (e) {
-          console.error('[SoulSync] WebSocket message parse error:', e.message);
+          console.error('[LingDu] WebSocket message parse error:', e.message);
         }
       });
 
       this.ws.on('close', () => {
         this.connected = false;
-        console.log('[SoulSync] WebSocket disconnected');
+        console.log('[LingDu] WebSocket disconnected');
         this.stopHeartbeat();
         this.scheduleReconnect();
       });
 
       this.ws.on('error', (e) => {
-        console.error('[SoulSync] WebSocket error:', e.message);
+        console.error('[LingDu] WebSocket error:', e.message);
       });
     } catch (e) {
-      console.error('[SoulSync] Failed to connect WebSocket:', e.message);
+      console.error('[LingDu] Failed to connect WebSocket:', e.message);
       this.scheduleReconnect();
     }
   }
@@ -695,7 +695,7 @@ class SyncEngine extends EventEmitter {
   scheduleReconnect() {
     setTimeout(() => {
       if (!this.connected) {
-        console.log('[SoulSync] Attempting WebSocket reconnection...');
+        console.log('[LingDu] Attempting WebSocket reconnection...');
         this.connectWebSocket();
       }
     }, 5000);
@@ -704,13 +704,13 @@ class SyncEngine extends EventEmitter {
   async handleWebSocketMessage(msg) {
     switch (msg.type) {
       case 'profile_updated':
-        console.log(`[SoulSync] Received update notification, version: ${msg.version}`);
+        console.log(`[LingDu] Received update notification, version: ${msg.version}`);
         await this.downloadAll();
         break;
       case 'pong':
         break;
       default:
-        console.log('[SoulSync] Unknown WebSocket message:', msg.type);
+        console.log('[LingDu] Unknown WebSocket message:', msg.type);
     }
   }
 
@@ -718,7 +718,7 @@ class SyncEngine extends EventEmitter {
     this.heartbeatInterval = setInterval(() => {
       if (this.ws && this.ws.readyState === WebSocket.OPEN) {
         this.ws.send(JSON.stringify({ type: 'ping' }));
-        console.log('[SoulSync] Heartbeat sent');
+        console.log('[LingDu] Heartbeat sent');
       }
     }, 30000);
   }
@@ -738,7 +738,7 @@ class SyncEngine extends EventEmitter {
       this.ws = null;
     }
     this.connected = false;
-    console.log('[SoulSync] Disconnected');
+    console.log('[LingDu] Disconnected');
   }
 }
 

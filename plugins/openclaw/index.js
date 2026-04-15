@@ -67,9 +67,9 @@ async function getUserGreeting(token, deviceName) {
       }
     }
   } catch (e) {
-    console.error('[SoulSync] Failed to get user info:', e.message);
+    console.error('[LingDu] Failed to get user info:', e.message);
   }
-  return `${userName}你好，我是三澍，非常高兴能在 ${deviceName} 再次与你相遇。\n\n已同步: SOUL.md / USER.md / MEMORY.md`;
+  return `${userName}你好，我是三澍，非常高兴能在 ${deviceName} 再次与你相遇。\n\n已同�? SOUL.md / USER.md / MEMORY.md`;
 }
 
 function detectAuthMode(api) {
@@ -92,14 +92,14 @@ async function startOAuthLocal() {
     const state = crypto.randomBytes(16).toString('hex');
     const authUrl = `${getCloudUrl()}/auth/oauth/start?port=${port}&callback=${encodeURIComponent(callbackUrl)}&state=${state}`;
 
-    console.log('[SoulSync] Opening browser for authorization...');
+    console.log('[LingDu] Opening browser for authorization...');
 
     const require2 = createRequire(__filename);
     const openPath = require2.resolve('open');
     const open = (await import(openPath)).default;
     await open(authUrl);
 
-    console.log('[SoulSync] Waiting for authorization...');
+    console.log('[LingDu] Waiting for authorization...');
 
     const { token } = await waitForToken();
     
@@ -136,7 +136,7 @@ async function startDeviceCodeCLI() {
     const { device_code, auth_url } = result.body;
     
     const homeDir = os.homedir();
-    const pendingDir = path.join(homeDir, '.soulsync');
+    const pendingDir = path.join(homeDir, '.lingdu');
     if (!fs.existsSync(pendingDir)) {
       fs.mkdirSync(pendingDir, { recursive: true });
     }
@@ -146,9 +146,9 @@ async function startDeviceCodeCLI() {
       timestamp: Date.now()
     }));
     
-    console.log('[SoulSync] Please visit the following URL to authorize:');
+    console.log('[LingDu] Please visit the following URL to authorize:');
     console.log(`  ${auth_url}`);
-    console.log('[SoulSync] Or say "connect SoulSync" in chat to continue...');
+    console.log('[LingDu] Or say "connect lingdu" in chat to continue...');
     
     const token = await waitForAuthCompletion(device_code);
     
@@ -222,7 +222,7 @@ async function registerDevice(deviceId, deviceName, deviceType, token) {
       device_type: deviceType
     }, token);
   } catch (e) {
-    console.error('[SoulSync] Failed to register device:', e.message);
+    console.error('[LingDu] Failed to register device:', e.message);
   }
 }
 
@@ -230,7 +230,7 @@ function startNodeService(mode = '--start') {
   const pluginDir = getPluginDir();
   const daemonScript = path.join(pluginDir, 'src', 'daemon.js');
 
-  console.log(`[SoulSync] Starting Node.js sync service (${mode})...`);
+  console.log(`[LingDu] Starting Node.js sync service (${mode})...`);
 
   if (nodeProcess) {
     nodeProcess.kill();
@@ -245,12 +245,12 @@ function startNodeService(mode = '--start') {
   });
 
   nodeProcess.on('close', (code) => {
-    console.log(`[SoulSync] Node.js process exited with code ${code}`);
+    console.log(`[LingDu] Node.js process exited with code ${code}`);
     nodeProcess = null;
   });
 
   nodeProcess.on('error', (err) => {
-    console.error(`[SoulSync] Failed to start Node.js process: ${err}`);
+    console.error(`[LingDu] Failed to start Node.js process: ${err}`);
     nodeProcess = null;
   });
 
@@ -259,7 +259,7 @@ function startNodeService(mode = '--start') {
 
 function stopNodeService() {
   if (nodeProcess) {
-    console.log('[SoulSync] Stopping Node.js service...');
+    console.log('[LingDu] Stopping Node.js service...');
     nodeProcess.kill();
     nodeProcess = null;
   }
@@ -351,18 +351,18 @@ async function startDeviceCodeFlow() {
 }
 
 module.exports = function register(api) {
-  console.log('[SoulSync] Registering plugin...');
+  console.log('[LingDu] Registering plugin...');
 
   registerChatTools(api);
 
   api.registerCli(
     ({ program }) => {
       program
-        .command('soulsync:start')
-        .description('启动 SoulSync 同步服务')
+        .command('lingdu:start')
+        .description('启动 LingDu（灵渡）同步服务')
         .action(async () => {
           if (!isAuthenticated()) {
-            console.log('[SoulSync] Not configured. Starting device authorization flow...');
+            console.log('[LingDu] Not configured. Starting device authorization flow...');
 
             const authMode = detectAuthMode(null);
             let result;
@@ -378,50 +378,50 @@ module.exports = function register(api) {
             if (result.success) {
               console.log(result.message);
             } else {
-              console.error(`[SoulSync] ${result.message}`);
+              console.error(`[LingDu] ${result.message}`);
             }
             return;
           }
 
           if (nodeProcess) {
-            console.log('[SoulSync] Service already running');
+            console.log('[LingDu] Service already running');
             return;
           }
 
           startNodeService('--start');
         });
     },
-    { commands: ['soulsync:start'] }
+    { commands: ['lingdu:start'] }
   );
   
   function registerChatTools(api) {
     api.registerTool({
-      name: 'soulsync_status',
-      description: 'Check SoulSync plugin status for OpenClaw (小龙虾). Call when user mentions SoulSync, soul sync, 灵魂同步, OpenClaw plugin, 小龙虾插件, or asks about sync status.',
+      name: 'lingdu_status',
+      description: 'Check LingDu plugin status for OpenClaw (小龙虾). Call when user mentions LingDu, 灵渡, soul sync, SoulSync, or asks about sync status.',
       input_schema: { type: 'object', properties: {}, required: [] }
     }, async () => {
       const cfg = loadConfig();
       if (!cfg || !cfg.token) {
-        return { configured: false, message: 'SoulSync is not configured. Would you like to connect your SoulSync account?' };
+        return { configured: false, message: 'LingDu is not configured. Would you like to connect your account?' };
       }
       
       const conn = await checkConnection();
       if (conn.connected) {
-        return { configured: true, connected: true, email: cfg.email, message: `SoulSync is connected and syncing for ${cfg.email}.` };
+        return { configured: true, connected: true, email: cfg.email, message: `LingDu is connected and syncing for ${cfg.email}.` };
       } else if (conn.reason === 'token_expired') {
-        return { configured: true, connected: false, message: 'SoulSync token has expired. Would you like to reconnect your account?' };
+        return { configured: true, connected: false, message: 'LingDu token has expired. Would you like to reconnect your account?' };
       } else {
-        return { configured: true, connected: false, message: `SoulSync is configured but cannot connect to server: ${conn.reason}` };
+        return { configured: true, connected: false, message: `LingDu is configured but cannot connect to server: ${conn.reason}` };
       }
     });
 
     api.registerTool({
-      name: 'soulsync_connect',
-      description: '连接 SoulSync 灵魂同步服务。当用户说"安装soulsync"、"配置soulsync"、"连接soulsync"、"设置同步"、"开启灵魂同步"时调用。无需账号密码，会提供浏览器授权链接。',
+      name: 'lingdu_connect',
+      description: '连接 LingDu（灵渡）服务。当用户说"安装lingdu"、"配置lingdu"、"连接lingdu"、"设置同步"、"开启灵魂同步"时调用。无需账号密码，会提供浏览器授权链接。',
       input_schema: { type: 'object', properties: {}, required: [] }
     }, async () => {
       if (isAuthenticated()) {
-        return 'SoulSync 已连接。使用 soulsync_status 查看状态。';
+        return 'LingDu 已连接。使用 lingdu_status 查看状态。';
       }
 
       const result = await startDeviceCodeFlow();
@@ -429,13 +429,13 @@ module.exports = function register(api) {
     });
 
     api.registerTool({
-      name: 'soulsync_sync',
-      description: 'Manually trigger SoulSync sync. Call when user says "同步soulsync", "手动同步", "强制同步", or wants to force sync.',
+      name: 'lingdu_sync',
+      description: 'Manually trigger LingDu sync. Call when user says "同步lingdu", "手动同步", "强制同步", or wants to force sync.',
       input_schema: { type: 'object', properties: {}, required: [] }
     }, async () => {
       const cfg = loadConfig();
       if (!cfg || !cfg.token) {
-        return 'SoulSync is not configured. Please connect first.';
+        return 'LingDu is not configured. Please connect first.';
       }
       
       if (!nodeProcess) {
@@ -446,8 +446,8 @@ module.exports = function register(api) {
     });
 
     api.registerTool({
-      name: 'soulsync_logout',
-      description: 'Logout and unbind device from SoulSync. Call when user says "退出soulsync", "解绑设备", "断开soulsync连接".',
+      name: 'lingdu_logout',
+      description: 'Logout and unbind device from LingDu. Call when user says "退出lingdu", "解绑设备", "断开lingdu连接".',
       input_schema: { type: 'object', properties: {}, required: [] }
     }, async () => {
       stopNodeService();
@@ -457,7 +457,7 @@ module.exports = function register(api) {
         try {
           await makeRequest('DELETE', `/api/devices/${cfg.device_id}`, null, cfg.token);
         } catch (e) {
-          console.error('[SoulSync] Failed to delete device:', e.message);
+          console.error('[LingDu] Failed to delete device:', e.message);
         }
       }
       
@@ -473,31 +473,31 @@ module.exports = function register(api) {
           fs.writeFileSync(configPath, JSON.stringify(existing, null, 2));
         }
       } catch (e) {
-        console.error('[SoulSync] Error clearing config:', e);
+        console.error('[LingDu] Error clearing config:', e);
       }
       
-      return 'Logged out successfully. Your local data is preserved. To reconnect, say "connect SoulSync".';
+      return 'Logged out successfully. Your local data is preserved. To reconnect, say "connect lingdu".';
     });
 
     api.registerTool({
-      name: 'soulsync_devices',
-      description: 'List connected SoulSync devices. Call when user says "查看soulsync设备", "我的设备列表", "已连接设备", or asks about connected devices.',
+      name: 'lingdu_devices',
+      description: 'List connected LingDu devices. Call when user says "查看lingdu设备", "我的设备列表", "已连接设备", or asks about connected devices.',
       input_schema: { type: 'object', properties: {}, required: [] }
     }, async () => {
       const cfg = loadConfig();
       if (!cfg || !cfg.token) {
-        return 'Not logged in / 未登录';
+        return 'Not logged in / 未登�?;
       }
       
       try {
         const result = await makeRequest('GET', '/api/devices', null, cfg.token);
         if (result.status === 200) {
           const devices = result.body.devices || [];
-          if (devices.length === 0) return 'No devices found / 未找到设备';
+          if (devices.length === 0) return 'No devices found / 未找到设�?;
           const list = devices.map(d => 
             `- ${d.device_name || 'Unnamed'} (${d.device_type || 'local'}) - Last sync: ${d.last_sync_at || 'Never'}`
           ).join('\n');
-          return `Connected devices / 已连接设备:\n${list}`;
+          return `Connected devices / 已连接设�?\n${list}`;
         }
         return 'Failed to get devices / 获取设备列表失败';
       } catch (e) {
@@ -506,19 +506,19 @@ module.exports = function register(api) {
     });
 
     api.registerTool({
-      name: 'soulsync_rename_device',
-      description: 'Rename current SoulSync device. Call when user says "重命名设备", "修改设备名称".',
+      name: 'lingdu_rename_device',
+      description: 'Rename current LingDu device. Call when user says "重命名设�?, "修改设备名称".',
       input_schema: {
         type: 'object',
         properties: {
-          name: { type: 'string', description: 'New device name / 新设备名称' }
+          name: { type: 'string', description: 'New device name / 新设备名�? }
         },
         required: ['name']
       }
     }, async ({ name }) => {
       const cfg = loadConfig();
       if (!cfg || !cfg.token || !cfg.device_id) {
-        return 'Not logged in / 未登录';
+        return 'Not logged in / 未登�?;
       }
       
       try {
@@ -528,9 +528,9 @@ module.exports = function register(api) {
           const configPath = path.join(pluginDir, 'config.json');
           cfg.device_name = name;
           fs.writeFileSync(configPath, JSON.stringify(cfg, null, 2));
-          return `Device renamed to "${name}" / 设备已重命名为 "${name}"`;
+          return `Device renamed to "${name}" / 设备已重命名�?"${name}"`;
         }
-        return 'Failed to rename device / 重命名设备失败';
+        return 'Failed to rename device / 重命名设备失�?;
       } catch (e) {
         return `Error: ${e.message}`;
       }
@@ -540,11 +540,11 @@ module.exports = function register(api) {
   api.registerCli(
     ({ program }) => {
       program
-        .command('soulsync:start')
-        .description('启动 SoulSync 同步服务')
+        .command('lingdu:start')
+        .description('启动 LingDu（灵渡）同步服务')
         .action(async () => {
           if (!isAuthenticated()) {
-            console.log('[SoulSync] Not configured. Starting device authorization flow...');
+            console.log('[LingDu] Not configured. Starting device authorization flow...');
 
             const authMode = detectAuthMode(null);
             let result;
@@ -560,40 +560,40 @@ module.exports = function register(api) {
             if (result.success) {
               console.log(result.message);
             } else {
-              console.error(`[SoulSync] ${result.message}`);
+              console.error(`[LingDu] ${result.message}`);
             }
             return;
           }
 
           if (nodeProcess) {
-            console.log('[SoulSync] Service already running');
+            console.log('[LingDu] Service already running');
             return;
           }
 
           startNodeService('--start');
         });
     },
-    { commands: ['soulsync:start'] }
+    { commands: ['lingdu:start'] }
   );
 
   api.registerCli(
     ({ program }) => {
       program
-        .command('soulsync:stop')
-        .description('停止 SoulSync 同步服务')
+        .command('lingdu:stop')
+        .description('停止 LingDu（灵渡）同步服务')
         .action(() => {
           stopNodeService();
-          console.log('[SoulSync] Service stopped');
+          console.log('[LingDu] Service stopped');
         });
     },
-    { commands: ['soulsync:stop'] }
+    { commands: ['lingdu:stop'] }
   );
 
   if (isAuthenticated()) {
-    console.log('[SoulSync] Auto-starting sync service...');
+    console.log('[LingDu] Auto-starting sync service...');
     startNodeService('--start');
   }
 
-  console.log('[SoulSync] Plugin loaded. Run "openclaw soulsync:start" to begin.');
-  console.log('[SoulSync] Plugin registered successfully');
+  console.log('[LingDu] Plugin loaded. Run "openclaw lingdu:start" to begin.');
+  console.log('[LingDu] Plugin registered successfully');
 };

@@ -1,6 +1,6 @@
 {
-  "id": "soulsync",
-  "name": "SoulSync",
+  "id": "lingdu",
+  "name": "LingDu",
   "configSchema": {
     "type": "object",
     "additionalProperties": false,

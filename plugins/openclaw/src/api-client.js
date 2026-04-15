@@ -4,7 +4,7 @@ const { URL } = require('url');
 
 class APIClient {
   constructor(baseUrl, token) {
-    this.baseUrl = baseUrl || 'https://soulsync.work';
+    this.baseUrl = baseUrl || 'https://LingDu.work';
     this.token = token;
   }
 
@@ -50,12 +50,12 @@ class APIClient {
 
   async getProfiles() {
     try {
-      console.log('[SoulSync] API getProfiles called');
+      console.log('[LingDu] API getProfiles called');
       const result = await this.request('GET', '/api/profiles');
-      console.log(`[SoulSync] API raw response:`, JSON.stringify(result).substring(0, 300));
+      console.log(`[LingDu] API raw response:`, JSON.stringify(result).substring(0, 300));
       return result;
     } catch (e) {
-      console.error('[SoulSync] API getProfiles error:', e.message);
+      console.error('[LingDu] API getProfiles error:', e.message);
       return { status: 500, body: null };
     }
   }

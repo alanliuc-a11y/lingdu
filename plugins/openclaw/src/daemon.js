@@ -5,7 +5,7 @@ const { SyncEngine } = require('./sync-engine');
 const { loadConfig, getPluginDir } = require('./config');
 
 function getLockFile() {
-  return path.join(os.tmpdir(), 'soulsync.lock');
+  return path.join(os.tmpdir(), 'lingdu.lock');
 }
 
 function checkAlreadyRunning() {
@@ -15,7 +15,7 @@ function checkAlreadyRunning() {
       const pid = parseInt(fs.readFileSync(lockFile, 'utf-8'));
       try {
         process.kill(pid, 0);
-        console.log('[SoulSync] Sync service already running (PID:', pid, ')');
+        console.log('[LingDu] Sync service already running (PID:', pid, ')');
         return true;
       } catch (e) {
         fs.unlinkSync(lockFile);
@@ -42,7 +42,7 @@ function removeLockFile() {
 async function main() {
   const config = loadConfig();
   if (!config || !config.token) {
-    console.error('[SoulSync] Not configured. Run "openclaw soulsync:start" first.');
+    console.error('[LingDu] Not configured. Run "openclaw lingdu:start" first.');
     process.exit(1);
   }
 
@@ -55,21 +55,21 @@ async function main() {
   const engine = new SyncEngine(config);
 
   process.on('SIGTERM', () => {
-    console.log('[SoulSync] Received SIGTERM, shutting down...');
+    console.log('[LingDu] Received SIGTERM, shutting down...');
     engine.disconnect();
     removeLockFile();
     process.exit(0);
   });
 
   process.on('SIGINT', () => {
-    console.log('[SoulSync] Received SIGINT, shutting down...');
+    console.log('[LingDu] Received SIGINT, shutting down...');
     engine.disconnect();
     removeLockFile();
     process.exit(0);
   });
 
   process.on('uncaughtException', (e) => {
-    console.error('[SoulSync] Uncaught exception:', e);
+    console.error('[LingDu] Uncaught exception:', e);
     engine.disconnect();
     removeLockFile();
     process.exit(1);
@@ -78,9 +78,9 @@ async function main() {
   try {
     await engine.initialize();
     engine.startWatching();
-    console.log('[SoulSync] Sync service started');
+    console.log('[LingDu] Sync service started');
   } catch (e) {
-    console.error('[SoulSync] Failed to start sync service:', e.message);
+    console.error('[LingDu] Failed to start sync service:', e.message);
     engine.disconnect();
     removeLockFile();
     process.exit(1);
