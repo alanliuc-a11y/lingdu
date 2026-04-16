@@ -1,6 +1,7 @@
 {
   "id": "lingdu",
   "name": "LingDu",
+  "description": "Cross-device memory synchronization for AI assistants. Syncs SOUL.md, USER.md, and MEMORY.md files to cloud storage with end-to-end encryption. Requires user authorization via browser-based device code flow. Background daemon monitors file changes and syncs automatically.",
   "configSchema": {
     "type": "object",
     "additionalProperties": false,
