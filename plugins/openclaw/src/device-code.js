@@ -15,7 +15,7 @@ function getCloudUrl() {
       if (cfg.cloud_url) return cfg.cloud_url;
     }
   } catch (e) {}
-  return 'https://LingDu.work';
+  return 'https://soulsync.work';
 }
 
 function makeRequest(method, urlPath, body = null) {

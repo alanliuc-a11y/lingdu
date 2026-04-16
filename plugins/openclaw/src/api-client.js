@@ -4,7 +4,7 @@ const { URL } = require('url');
 
 class APIClient {
   constructor(baseUrl, token) {
-    this.baseUrl = baseUrl || 'https://LingDu.work';
+    this.baseUrl = baseUrl || 'https://soulsync.work';
     this.token = token;
   }
 
