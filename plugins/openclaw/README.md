@@ -58,10 +58,34 @@ The plugin requires:
 ## Permissions
 
 This plugin:
-- ✅ Reads files: `SOUL.md`, `USER.md`, `MEMORY.md` from workspace
-- ✅ Writes files: Downloads updates from cloud to workspace
-- ✅ Network access: Connects to configured cloud server
-- ✅ Background process: Runs daemon for file watching
+- ✅ **Reads files**: `SOUL.md`, `USER.md`, `MEMORY.md` from workspace
+- ✅ **Writes files**: Downloads updates from cloud to workspace
+- ✅ **Network access**: Connects to configured cloud server (default: https://soulsync.work)
+- ✅ **Background process**: Runs daemon for file watching
+
+### About Background Process (child_process)
+The plugin uses Node.js `child_process.spawn()` to start a background daemon. This is necessary for:
+- **Real-time file monitoring**: Watches workspace files for changes
+- **Automatic sync**: Uploads changes without manual intervention
+- **Process isolation**: Daemon runs independently from OpenClaw
+
+**Security notes**:
+- **No user input**: The spawn command uses fixed arguments only
+- **Controlled execution**: Only starts/stops the daemon script (`src/daemon.js`)
+- **No shell injection risk**: Uses `spawn()` with array arguments (not shell strings)
+- **Auditable code**: See `index.js` line 240 for implementation
+
+**Command executed**:
+```javascript
+spawn(process.execPath, [daemonScript, mode], {
+  cwd: pluginDir,
+  env: { OPENCLAW_PLUGIN: 'true', PLUGIN_DIR: pluginDir },
+  detached: true,
+  stdio: 'ignore'
+})
+```
+
+This is standard practice for daemon management in Node.js plugins.
 
 ## Source Code
 
