@@ -7,6 +7,54 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.0.4] - 2026-04-15
+
+### Documentation
+- Enhanced README with detailed `child_process` security documentation
+- Clarified daemon management is standard practice for Node.js plugins
+- Documented security measures: no user input, fixed arguments, no shell injection risk
+- Added code reference to implementation (index.js:240)
+- Addresses ClawHub static analysis warning about shell command execution
+
+---
+
+## [2.0.3] - 2026-04-15
+
+### Fixed
+- Fixed domain inconsistency: unified all references to `soulsync.work` (removed `LingDu.work`)
+- Fixed `src/api-client.js` default URL
+- Fixed `src/device-code.js` default URL
+
+### Documentation
+- Enhanced README with detailed encryption documentation
+- Added explicit encryption implementation reference (`src/sync-engine.js`)
+- Documented AES-256-GCM client-side encryption process
+- Clarified token storage location and security
+
+### Security
+- Improved `.gitignore` to exclude `config.json`
+- Ensured no sensitive files (token, config.json) are included in package
+- Addressed ClawHub security scan concerns
+
+---
+
+## [2.0.2] - 2026-04-15
+
+### Fixed
+- Fixed `repository.url` in package.json (was pointing to old `soulsync` repo)
+- Corrected to `https://github.com/alanliuc-a11y/lingdu`
+- Fixes npm publish provenance verification error
+
+---
+
+## [2.0.1] - 2026-04-15
+
+### Added
+- Plugin description in `openclaw.plugin.json` for better ClawHub presentation
+- Comprehensive README.md with security and permissions documentation
+
+---
+
 ## [2.0.0] - 2026-04-15
 
 ### 🎉 Major Rebranding
@@ -195,7 +243,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-[2.0.0]: https://github.com/alanliuc-a11y/soulsync/compare/v1.2.2...v2.0.0
+[2.0.4]: https://github.com/alanliuc-a11y/lingdu/compare/v2.0.3...v2.0.4
+[2.0.3]: https://github.com/alanliuc-a11y/lingdu/compare/v2.0.2...v2.0.3
+[2.0.2]: https://github.com/alanliuc-a11y/lingdu/compare/v2.0.1...v2.0.2
+[2.0.1]: https://github.com/alanliuc-a11y/lingdu/compare/v2.0.0...v2.0.1
+[2.0.0]: https://github.com/alanliuc-a11y/lingdu/compare/v1.2.2...v2.0.0
 [1.2.2]: https://github.com/alanliuc-a11y/soulsync/compare/v1.2.1...v1.2.2
 [1.2.1]: https://github.com/alanliuc-a11y/soulsync/compare/v1.2.0...v1.2.1
 [1.2.0]: https://github.com/alanliuc-a11y/soulsync/compare/v1.1.6...v1.2.0
