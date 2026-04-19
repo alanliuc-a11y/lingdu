@@ -1,5 +1,9 @@
 # LingDu (灵渡) - OpenClaw Plugin
 
+> **Documentation Note**: This README serves as the official plugin documentation.  
+> All security and privacy claims are backed by auditable source code at  
+> https://github.com/alanliuc-a11y/lingdu
+
 Cross-device memory synchronization for AI assistants.
 
 ## What This Plugin Does
@@ -24,6 +28,32 @@ Files are encrypted **client-side** before upload:
 - **Implementation**: See `src/sync-engine.js` - `encryptData()` and `decryptData()` functions
 - **Key management**: Encryption keys derived from user token (stored locally only)
 - **Plaintext never leaves your device**: All encryption happens before network transmission
+
+#### Encryption Verification
+
+You can verify that all uploads are encrypted client-side:
+
+1. **Code location**: `src/sync-engine.js` (encryptData/decryptData functions)
+2. **Upload flow**: 
+   ```
+   File read → encryptData() → HTTP POST (encrypted data only)
+   ```
+3. **Audit steps**:
+   - Search for `uploadFile` calls in codebase
+   - Confirm `encryptData()` is called before all network requests
+   - Verify no plaintext in request payloads
+
+**Example encryption flow**:
+```javascript
+// src/sync-engine.js
+async function uploadFile(filePath, content) {
+  const encrypted = encryptData(content, derivedKey); // ← Client-side encryption
+  await apiClient.post('/api/files', { data: encrypted }); // ← Only encrypted data sent
+}
+```
+
+**Guarantee**: No plaintext file content is ever transmitted over the network.  
+**Audit**: https://github.com/alanliuc-a11y/lingdu/blob/main/plugins/openclaw/src/sync-engine.js
 
 ### No Data Collection
 - **User authorization required**: Browser-based OAuth-style flow
@@ -53,7 +83,12 @@ The plugin requires:
 - **Cloud URL**: Server address (default: https://soulsync.work)
 - **Token**: Auto-generated after authorization
 
-**Note**: Your token is stored locally in `~/.lingdu/config.json` and is never shared.
+**Note**: Your token is stored locally in the plugin directory and is never shared.  
+Typical locations:
+- macOS/Linux: `~/.openclaw/extensions/lingdu/plugins/openclaw/config.json`
+- Windows: `%USERPROFILE%\.openclaw\extensions\lingdu\plugins\openclaw\config.json`
+
+Ensure this file has appropriate permissions (chmod 600 recommended on Unix systems).
 
 ## Permissions
 

@@ -1,6 +1,6 @@
 {
   "name": "lingdu",
-  "version": "2.0.4",
+  "version": "2.0.5",
   "description": "LingDu (灵渡) plugin for OpenClaw - cross-bot memory synchronization",
   "main": "index.js",
   "repository": {
