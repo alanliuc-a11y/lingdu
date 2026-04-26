@@ -3,47 +3,97 @@ name: Publish to npm
 on:
   push:
     tags:
-      - 'v*'
+      - 'v*'  # 当推送 v* 标签时触发（如 v3.0.0）
 
 jobs:
-  publish:
+  test:
     runs-on: ubuntu-latest
-    permissions:
-      id-token: write
-      contents: write
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Node.js
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 'lts/*'
-          registry-url: 'https://registry.npmjs.org'
+          node-version: '18'
+          cache: 'npm'
 
       - name: Install dependencies
         run: npm ci
-        working-directory: plugins/openclaw
 
-      - name: Publish to npm
-        run: npm publish --provenance --access public
-        working-directory: plugins/openclaw
+      - name: Run tests
+        run: npm test
+
+  publish:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          registry-url: 'https://registry.npmjs.org'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Publish lingdu-core
+        run: |
+          cd packages/lingdu-core
+          npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Wait for npm index update
+        run: sleep 30
+
+      - name: Publish lingdu
+        run: |
+          cd packages/lingdu
+          npm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v1
-        with:
-          generate_release_notes: true
-          body: |
-            ## 📦 SoulSync ${{ github.ref_name }}
-            
-            已发布到 npm: https://www.npmjs.com/package/soulsync
-            
-            ### 安装
-            ```bash
-            npm install -g soulsync
-            ```
+        uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref_name }}
+          release_name: LingDu ${{ github.ref_name }}
+          body: |
+            ## 🎉 LingDu ${{ github.ref_name }} 发布
+
+            ### 重大更新
+            
+            LingDu v3.0 采用全新的"一核多壳"架构，实现：
+            
+            - ✅ 核心库独立（lingdu-core）
+            - ✅ CLI 工具（lingdu）
+            - ✅ 插件薄壳（lingdu-openclaw）
+            - ✅ 快速接入新平台（< 1 天）
+            
+            ### 安装
+            
+            **OpenClaw 用户**：
+            从 ClawHub 更新插件
+            
+            **WorkBuddy / CoPaw 用户**：
+            ```bash
+            npm install -g lingdu
+            ```
+            
+            **开发者**：
+            ```bash
+            npm install lingdu-core
+            ```
+            
+            ### 详细变更
+            
+            请查看 [CHANGELOG.md](./CHANGELOG.md)
+          draft: false
+          prerelease: false
