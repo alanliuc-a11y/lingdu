@@ -1,26 +1,21 @@
 {
-  "name": "lingdu",
+  "name": "lingdu-openclaw",
   "version": "3.0.0",
-  "description": "LingDu (灵渡) plugin for OpenClaw - cross-bot memory synchronization",
-  "main": "index.js",
+  "description": "LingDu (灵渡) OpenClaw plugin - cross-device memory synchronization",
+  "main": "src/index.js",
   "scripts": {
-    "test": "jest --verbose"
-  },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/alanliuc-a11y/lingdu"
+    "test": "jest --verbose --passWithNoTests"
   },
   "dependencies": {
-    "chokidar": "^3.5.3",
-    "open": "^10.1.0",
-    "ws": "^8.14.2"
+    "lingdu-core": "^3.0.0",
+    "open": "^10.1.0"
   },
   "devDependencies": {
     "jest": "^29.7.0"
   },
   "openclaw": {
     "extensions": [
-      "./index.js"
+      "./src/index.js"
     ],
     "compat": {
       "pluginApi": ">=2026.3.24-beta.2",

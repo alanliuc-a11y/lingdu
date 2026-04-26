@@ -1,25 +1,42 @@
-# LingDu（灵渡）
+# LingDu（灵渡）v3.0
 
 > **Cross-device memory synchronization for AI assistants.**  
 > **AI 助手的跨设备记忆同步系统。**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![npm version](https://img.shields.io/npm/v/soulsync.svg)](https://www.npmjs.com/package/soulsync)
-[![Downloads](https://img.shields.io/npm/dm/soulsync.svg)](https://www.npmjs.com/package/soulsync)
+[![npm version](https://img.shields.io/npm/v/lingdu-core.svg)](https://www.npmjs.com/package/lingdu-core)
 
 🌐 [English](#english) | [中文](#中文)
 
 ---
 
-## ⚠️ Rebranding Notice
+## 🎉 v3.0 重大更新
 
-**This project has been renamed from SoulSync to LingDu (灵渡).**
+**LingDu v3.0 采用全新的"一核多壳"架构**，实现：
 
-- **npm package**: `soulsync` (legacy, will be deprecated) → `lingdu` (coming soon)
-- **OpenClaw plugin**: Now available as `lingdu`
-- **Purpose**: The rebranding reflects our commitment to Chinese-first naming and resolves naming conflicts on ClawHub.
+- ✅ **核心库独立**：`lingdu-core` 可被任何平台复用
+- ✅ **CLI 工具**：`lingdu` 命令行工具，支持 WorkBuddy、CoPaw 等平台
+- ✅ **插件薄壳**：OpenClaw 插件只需 ~300 行代码
+- ✅ **快速接入**：新平台接入时间从 3 天缩短到 < 1 天
+- ✅ **维护成本低**：核心逻辑只写一次，多个平台共享
 
-**Existing users**: Your data is safe. The service domain `soulsync.work` remains unchanged.
+### 架构对比
+
+**v2.x（旧架构）**：
+```
+每个平台都是独立的完整代码库
+→ 维护成本随平台数量线性增长
+```
+
+**v3.0（新架构）**：
+```
+lingdu-core（核心库）
+  ├── lingdu（CLI 工具）
+  ├── lingdu-openclaw（OpenClaw 插件）
+  ├── lingdu-mcp（MCP Server，未来）
+  └── lingdu-xxx（其他平台）
+→ 核心逻辑只写一次，接入新平台只需 < 300 行代码
+```
 
 ---
 
@@ -50,198 +67,175 @@ AI: Sorry, I don't have that memory
 - Local file loss = all memories lost
 - No backup, no migration, no sharing
 
-**Problem 4: Inefficient Manual Sync**
-- Git? Commit + push + pull every time
-- Cloud storage? File conflicts, sync delays, version chaos
-- rsync? Complex setup, no real-time sync
-
 ---
 
 ### ✅ LingDu's Solution
 
 LingDu is a **cloud-based memory synchronization system** designed for AI assistants:
 
-| Pain Point | Traditional Solution | LingDu |
-|------------|---------------------|---------|
-| Memory not synced | Manual file copying | ⚡ Real-time auto-sync (< 1s) |
-| Duplicate config | Reconfigure every device | ☁️ Set once, works everywhere |
-| Data silos | Local storage, easy to lose | 🔒 Cloud encrypted storage, permanent |
-| Manual sync inefficiency | Git/Cloud/rsync | 🤖 Zero-config, plugin handles it |
-
-**Core Features**:
-- 📝 **Three-file soul sync**: SOUL.md (personality), USER.md (user info), MEMORY.md (conversation history)
-- ⚡ **Real-time sync**: File changes detected and synced in < 1s
-- 🔐 **Encrypted cloud storage**: AES-256-GCM encryption, AWS KMS key management
-- 🌍 **Multi-device support**: Unlimited devices, all stay in sync
-- 🤖 **Zero-config**: Install plugin → authorize → auto sync
-- 🔌 **Multi-AI support**: Works with OpenClaw, CoPaw, Claude Desktop, and more (coming soon)
+| Pain Point | LingDu Solution |
+|-----------|----------------|
+| Memory not synced | Real-time sync via WebSocket, < 1s latency |
+| Duplicate configuration | One-time setup, auto-sync to all devices |
+| Data silos | Cloud storage + local backup, never lose data |
+| Manual sync | Auto-sync on file change, zero manual work |
 
 ---
 
 ### 📦 Installation
 
-#### For OpenClaw Users (Recommended)
+#### For OpenClaw Users
+
+Install the plugin from ClawHub:
 
 ```bash
-# Install LingDu plugin from ClawHub
+# Search for "lingdu" in ClawHub
+# Or install via CLI
 openclaw plugin install lingdu
-
-# Authorize and start syncing
-# The AI will guide you through the setup
 ```
 
-#### For npm Users
+#### For WorkBuddy / CoPaw Users
+
+Install via npm:
 
 ```bash
-# Legacy package name (will be deprecated)
-npm install soulsync
-
-# New package name (coming soon)
-npm install lingdu
+npm install -g lingdu
 ```
 
-#### For Other AI Assistants
+#### For Developers
 
-We're working on support for:
-- CoPaw (coming soon)
-- Claude Desktop (coming soon)
-- ChatGPT Desktop (planned)
-- Other MCP-compatible assistants
+Install the core library:
+
+```bash
+npm install lingdu-core
+```
 
 ---
 
 ### 🚀 Quick Start
 
-1. **Install the plugin** (see Installation above)
+#### OpenClaw Plugin
 
-2. **Authorize your account**
+1. Install the plugin from ClawHub
+2. Run the `auth` tool to authorize
+3. Files will auto-sync in the background
 
-   In your AI chat:
-   ```
-   You: Connect LingDu
-   AI: Opening browser for authorization...
-   ```
+#### CLI Tool
 
-   Or use command:
-   ```bash
-   openclaw lingdu:start
-   ```
+```bash
+# Start sync for OpenClaw
+lingdu start openclaw
 
-3. **Start syncing automatically**
+# Start sync for WorkBuddy
+lingdu start workbuddy
 
-   Your AI's memory files are now synced across all devices in real-time!
+# Start sync for CoPaw
+lingdu start copaw
+
+# Check status
+lingdu status
+
+# List supported platforms
+lingdu platforms
+```
 
 ---
 
-### 🎯 Use Cases
+### 🏗️ Architecture (v3.0)
 
-#### 1. Work-Life Balance
 ```
-Office (Windows):
-- Configure AI with work-related knowledge and tone
-- Save project documentation and meeting notes
-
-Home (macOS):
-- Same AI personality and memories
-- Continue conversations seamlessly
-```
-
-#### 2. Team Collaboration
-```
-Team Leader:
-- Sets up shared AI configuration
-- Defines team workflows and guidelines
-
-Team Members:
-- Inherit same AI setup
-- Share collective knowledge base
+lingdu/
+├── packages/
+│   ├── lingdu-core/        # Core library (npm)
+│   │   ├── sync/           # Sync engine
+│   │   ├── api/            # API client
+│   │   ├── auth/           # Authentication
+│   │   ├── schema/         # Schema processing
+│   │   └── config/         # Config management
+│   │
+│   ├── lingdu/             # CLI tool (npm)
+│   │   ├── bin/lingdu.js   # CLI entry
+│   │   └── platforms/      # Platform configs
+│   │
+│   └── lingdu-openclaw/    # OpenClaw plugin (ClawHub)
+│       └── src/index.js    # Plugin adapter (~300 lines)
 ```
 
-#### 3. Multi-Device Developer
-```
-Desktop (coding):
-- AI learns your coding patterns
-- Saves project context and TODOs
+**Key Principles**:
+- **One Core, Multiple Shells**: Core logic written once, shared by all platforms
+- **Platform Agnostic**: Core library has zero platform-specific code
+- **Thin Adapters**: Each platform only needs a thin adapter layer (< 300 lines)
 
-Laptop (meetings):
-- Same code knowledge available
-- AI remembers project discussions
+---
+
+### 🔧 For Developers
+
+#### Using lingdu-core in Your Project
+
+```javascript
+const { SyncEngine, ConfigManager, APIClient } = require('lingdu-core');
+
+// Initialize config
+const configMgr = new ConfigManager('/path/to/config');
+const config = configMgr.load();
+
+// Create sync engine
+const engine = new SyncEngine({
+  ...config,
+  profilesDir: '/path/to/profiles'
+});
+
+// Start syncing
+await engine.initialize();
+await engine.connect();
+```
+
+#### Adding a New Platform
+
+1. Create a platform config (< 10 lines):
+```javascript
+// platforms/myplatform.js
+module.exports = {
+  name: 'MyPlatform',
+  profilesDir: path.join(os.homedir(), '.myplatform', 'workspace'),
+  configDir: path.join(os.homedir(), '.lingdu')
+};
+```
+
+2. Register the platform:
+```javascript
+// platforms/index.js
+const platforms = {
+  myplatform: require('./myplatform'),
+  // ... other platforms
+};
+```
+
+3. Done! Users can now run:
+```bash
+lingdu start myplatform
 ```
 
 ---
 
 ### 📚 Documentation
 
-- [User Guide](docs/USER_GUIDE.md) (coming soon)
-- [API Documentation](docs/API.md) (coming soon)
-- [Migration Guide](docs/MIGRATION.md) (for SoulSync → LingDu)
-- [Troubleshooting](docs/TROUBLESHOOTING.md)
-
----
-
-### 🛠️ Technical Architecture
-
-```
-┌─────────────────┐
-│  Device A       │
-│  ┌───────────┐  │         ┌──────────────┐
-│  │ OpenClaw  │──┼────────▶│ LingDu Cloud │
-│  │ + LingDu  │  │  HTTPS  │   Server     │
-│  └───────────┘  │  WSS    │ (Encrypted)  │
-└─────────────────┘         └──────────────┘
-                                    │
-┌─────────────────┐                 │
-│  Device B       │                 │
-│  ┌───────────┐  │                 │
-│  │ OpenClaw  │──┼─────────────────┘
-│  │ + LingDu  │  │
-│  └───────────┘  │
-└─────────────────┘
-```
-
-**Tech Stack**:
-- **Client**: Node.js, WebSocket, File Watcher (chokidar)
-- **Server**: Express.js, SQLite, WebSocket (ws)
-- **Security**: AES-256-GCM, AWS KMS, JWT
-- **Deployment**: AWS EC2, PM2
-
----
-
-### 🔐 Security & Privacy
-
-- **End-to-end encryption**: All files encrypted before leaving your device
-- **Zero-knowledge architecture**: Server cannot decrypt your files
-- **AWS KMS**: Military-grade key management
-- **Open source**: Code is auditable and transparent
-- **Self-hostable**: Run your own server if needed
+- [Architecture Overview](./docs/ARCHITECTURE.md)
+- [API Reference](./docs/API.md)
+- [Platform Integration Guide](./docs/PLATFORM_INTEGRATION.md)
+- [Migration Guide (v2.x → v3.0)](./docs/MIGRATION.md)
 
 ---
 
 ### 🤝 Contributing
 
-We welcome contributions! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
-
-```bash
-# Fork and clone
-git clone https://github.com/alanliuc-a11y/soulsync.git
-cd soulsync
-
-# Note: Repository will be renamed to 'lingdu' soon
-```
+We welcome contributions! Please see [CONTRIBUTING.md](./CONTRIBUTING.md) for details.
 
 ---
 
 ### 📄 License
 
-[MIT License](LICENSE) - Free to use and modify
-
----
-
-### 💬 Support
-
-- **GitHub Issues**: [Report bugs or request features](https://github.com/alanliuc-a11y/soulsync/issues)
-- **Email**: support@soulsync.work
-- **Documentation**: [Full docs](https://soulsync.work/docs)
+MIT License - see [LICENSE](./LICENSE) for details.
 
 ---
 
@@ -249,12 +243,12 @@ cd soulsync
 
 ### 🔥 技术痛点
 
-如果你在多台设备上使用 AI 助手（OpenClaw、CoPaw、Claude Desktop 等），一定遇到过这些问题：
+如果你在多台设备上使用 AI 助手（OpenClaw、CoPaw、Claude Desktop 等），你可能遇到过这些问题：
 
-**问题 1：记忆无法同步**
+**痛点 1：记忆不同步**
 ```
 公司 MacBook：
-你：总结一下今天的会议
+你：总结今天的会议
 AI：好的，已保存到 MEMORY.md
 
 家里 Windows PC：
@@ -262,209 +256,188 @@ AI：好的，已保存到 MEMORY.md
 AI：抱歉，我没有这段记忆
 ```
 
-**问题 2：重复配置**
-- 每台设备重新配置 AI 的人格、说话风格、工作流程
+**痛点 2：重复配置**
+- 每台设备都要重新配置 AI 的性格、说话风格、工作流程
 - 手动复制粘贴自定义指令和提示词模板
-- 新电脑？一切从头开始
+- 换新电脑？从头再来
 
-**问题 3：数据孤岛**
+**痛点 3：数据孤岛**
 - SOUL.md、USER.md、MEMORY.md 散落在各个设备
 - 本地文件丢失 = 所有记忆丢失
-- 无备份、无迁移、无分享
-
-**问题 4：手动同步效率低**
-- 用 Git？每次都要 commit + push + pull
-- 用网盘？文件冲突、同步延迟、版本混乱
-- 用 rsync？配置复杂、无法实时同步
+- 无备份、无迁移、无共享
 
 ---
 
-### ✅ LingDu（灵渡）的解决方案
+### ✅ LingDu 的解决方案
 
-LingDu 是一个专为 AI 助手设计的**云端记忆同步系统**：
+LingDu 是为 AI 助手设计的**云端记忆同步系统**：
 
-| 痛点 | 传统方案 | LingDu |
-|------|---------|--------|
-| 记忆不同步 | 手动复制文件 | ⚡ 实时自动同步（< 1秒） |
-| 重复配置 | 每台设备重新配置 | ☁️ 一次设置，全局生效 |
-| 数据孤岛 | 本地存储，易丢失 | 🔒 云端加密存储，永久保存 |
-| 手动同步低效 | Git/网盘/rsync | 🤖 零配置，插件自动处理 |
-
-**核心功能**：
-- 📝 **三文件灵魂同步**：SOUL.md（人格）、USER.md（用户信息）、MEMORY.md（对话历史）
-- ⚡ **实时同步**：文件变化 < 1 秒自动检测并同步
-- 🔐 **加密云存储**：AES-256-GCM 加密，AWS KMS 密钥管理
-- 🌍 **多设备支持**：无限设备，全部保持同步
-- 🤖 **零配置**：安装插件 → 授权 → 自动同步
-- 🔌 **多 AI 支持**：支持 OpenClaw、CoPaw、Claude Desktop 等（持续扩展中）
+| 痛点 | LingDu 解决方案 |
+|-----|---------------|
+| 记忆不同步 | WebSocket 实时同步，延迟 < 1 秒 |
+| 重复配置 | 一次配置，自动同步到所有设备 |
+| 数据孤岛 | 云端存储 + 本地备份，永不丢失 |
+| 手动同步 | 文件变化自动同步，零手动操作 |
 
 ---
 
 ### 📦 安装
 
-#### OpenClaw 用户（推荐）
+#### OpenClaw 用户
+
+从 ClawHub 安装插件：
 
 ```bash
-# 从 ClawHub 安装 LingDu 插件
+# 在 ClawHub 搜索 "lingdu"
+# 或通过 CLI 安装
 openclaw plugin install lingdu
-
-# 授权并开始同步
-# AI 会引导你完成设置
 ```
 
-#### npm 用户
+#### WorkBuddy / CoPaw 用户
+
+通过 npm 安装：
 
 ```bash
-# 旧包名（将被废弃）
-npm install soulsync
-
-# 新包名（即将发布）
-npm install lingdu
+npm install -g lingdu
 ```
 
-#### 其他 AI 助手
+#### 开发者
 
-我们正在开发支持：
-- CoPaw（开发中）
-- Claude Desktop（开发中）
-- ChatGPT Desktop（计划中）
-- 其他 MCP 兼容助手
+安装核心库：
+
+```bash
+npm install lingdu-core
+```
 
 ---
 
 ### 🚀 快速开始
 
-1. **安装插件**（参见上方安装说明）
+#### OpenClaw 插件
 
-2. **授权账号**
+1. 从 ClawHub 安装插件
+2. 运行 `auth` 工具进行授权
+3. 文件将在后台自动同步
 
-   在 AI 对话中：
-   ```
-   你：连接 LingDu
-   AI：正在打开浏览器进行授权...
-   ```
+#### CLI 工具
 
-   或使用命令：
-   ```bash
-   openclaw lingdu:start
-   ```
+```bash
+# 为 OpenClaw 启动同步
+lingdu start openclaw
 
-3. **自动开始同步**
+# 为 WorkBuddy 启动同步
+lingdu start workbuddy
 
-   你的 AI 记忆文件现在会在所有设备间实时同步！
+# 为 CoPaw 启动同步
+lingdu start copaw
+
+# 检查状态
+lingdu status
+
+# 列出支持的平台
+lingdu platforms
+```
 
 ---
 
-### 🎯 使用场景
+### 🏗️ 架构（v3.0）
 
-#### 1. 工作生活平衡
 ```
-公司（Windows）：
-- 配置 AI 为工作相关的知识和语气
-- 保存项目文档和会议记录
-
-家里（macOS）：
-- 相同的 AI 人格和记忆
-- 无缝继续对话
-```
-
-#### 2. 团队协作
-```
-团队负责人：
-- 设置共享的 AI 配置
-- 定义团队工作流程和指南
-
-团队成员：
-- 继承相同的 AI 设置
-- 共享集体知识库
+lingdu/
+├── packages/
+│   ├── lingdu-core/        # 核心库（npm）
+│   │   ├── sync/           # 同步引擎
+│   │   ├── api/            # API 客户端
+│   │   ├── auth/           # 认证
+│   │   ├── schema/         # Schema 处理
+│   │   └── config/         # 配置管理
+│   │
+│   ├── lingdu/             # CLI 工具（npm）
+│   │   ├── bin/lingdu.js   # CLI 入口
+│   │   └── platforms/      # 平台配置
+│   │
+│   └── lingdu-openclaw/    # OpenClaw 插件（ClawHub）
+│       └── src/index.js    # 插件适配层（~300 行）
 ```
 
-#### 3. 多设备开发者
-```
-台式机（编码）：
-- AI 学习你的编码模式
-- 保存项目上下文和 TODO
+**核心原则**：
+- **一核多壳**：核心逻辑只写一次，多个平台共享
+- **平台无关**：核心库零平台特定代码
+- **薄适配层**：每个平台只需薄适配层（< 300 行）
 
-笔记本（会议）：
-- 相同的代码知识可用
-- AI 记住项目讨论
+---
+
+### 🔧 开发者指南
+
+#### 在你的项目中使用 lingdu-core
+
+```javascript
+const { SyncEngine, ConfigManager, APIClient } = require('lingdu-core');
+
+// 初始化配置
+const configMgr = new ConfigManager('/path/to/config');
+const config = configMgr.load();
+
+// 创建同步引擎
+const engine = new SyncEngine({
+  ...config,
+  profilesDir: '/path/to/profiles'
+});
+
+// 开始同步
+await engine.initialize();
+await engine.connect();
+```
+
+#### 接入新平台
+
+1. 创建平台配置（< 10 行）：
+```javascript
+// platforms/myplatform.js
+module.exports = {
+  name: 'MyPlatform',
+  profilesDir: path.join(os.homedir(), '.myplatform', 'workspace'),
+  configDir: path.join(os.homedir(), '.lingdu')
+};
+```
+
+2. 注册平台：
+```javascript
+// platforms/index.js
+const platforms = {
+  myplatform: require('./myplatform'),
+  // ... 其他平台
+};
+```
+
+3. 完成！用户现在可以运行：
+```bash
+lingdu start myplatform
 ```
 
 ---
 
 ### 📚 文档
 
-- [用户指南](docs/USER_GUIDE_CN.md)（即将发布）
-- [API 文档](docs/API_CN.md)（即将发布）
-- [迁移指南](docs/MIGRATION_CN.md)（SoulSync → LingDu）
-- [故障排除](docs/TROUBLESHOOTING_CN.md)
-
----
-
-### 🛠️ 技术架构
-
-```
-┌─────────────────┐
-│  设备 A         │
-│  ┌───────────┐  │         ┌──────────────┐
-│  │ OpenClaw  │──┼────────▶│ LingDu 云端  │
-│  │ + LingDu  │  │  HTTPS  │   服务器     │
-│  └───────────┘  │  WSS    │   (加密)     │
-└─────────────────┘         └──────────────┘
-                                    │
-┌─────────────────┐                 │
-│  设备 B         │                 │
-│  ┌───────────┐  │                 │
-│  │ OpenClaw  │──┼─────────────────┘
-│  │ + LingDu  │  │
-│  └───────────┘  │
-└─────────────────┘
-```
-
-**技术栈**：
-- **客户端**：Node.js、WebSocket、文件监听（chokidar）
-- **服务端**：Express.js、SQLite、WebSocket (ws)
-- **安全**：AES-256-GCM、AWS KMS、JWT
-- **部署**：AWS EC2、PM2
-
----
-
-### 🔐 安全与隐私
-
-- **端到端加密**：所有文件在离开设备前加密
-- **零知识架构**：服务器无法解密你的文件
-- **AWS KMS**：军用级密钥管理
-- **开源透明**：代码可审计和验证
-- **可自托管**：如需要可运行自己的服务器
+- [架构概览](./docs/ARCHITECTURE.md)
+- [API 参考](./docs/API.md)
+- [平台接入指南](./docs/PLATFORM_INTEGRATION.md)
+- [迁移指南（v2.x → v3.0）](./docs/MIGRATION.md)
 
 ---
 
 ### 🤝 贡献
 
-欢迎贡献！查看 [CONTRIBUTING.md](CONTRIBUTING.md) 了解指南。
-
-```bash
-# Fork 并克隆
-git clone https://github.com/alanliuc-a11y/soulsync.git
-cd soulsync
-
-# 注意：仓库即将更名为 'lingdu'
-```
+欢迎贡献！请查看 [CONTRIBUTING.md](./CONTRIBUTING.md) 了解详情。
 
 ---
 
 ### 📄 许可证
 
-[MIT 许可证](LICENSE) - 自由使用和修改
+MIT License - 详见 [LICENSE](./LICENSE)
 
 ---
 
-### 💬 支持
+## 🌟 Star History
 
-- **GitHub Issues**：[报告问题或请求功能](https://github.com/alanliuc-a11y/soulsync/issues)
-- **邮箱**：support@soulsync.work
-- **文档**：[完整文档](https://soulsync.work/docs)
-
----
-
-**Formerly known as SoulSync | 原名 SoulSync**
+[![Star History Chart](https://api.star-history.com/svg?repos=alanliuc-a11y/lingdu&type=Date)](https://star-history.com/#alanliuc-a11y/lingdu&Date)

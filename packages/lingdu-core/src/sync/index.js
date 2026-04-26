@@ -1,0 +1,10 @@
+const { SyncEngine, SCENE_FIRST_DEVICE, SCENE_EMPTY_DEVICE, SCENE_USED_DEVICE, SCENE_NO_DATA, SYNC_FILES } = require('./engine');
+
+module.exports = {
+  SyncEngine,
+  SCENE_FIRST_DEVICE,
+  SCENE_EMPTY_DEVICE,
+  SCENE_USED_DEVICE,
+  SCENE_NO_DATA,
+  SYNC_FILES
+};

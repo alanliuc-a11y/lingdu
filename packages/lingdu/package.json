@@ -1,0 +1,19 @@
+{
+  "name": "lingdu",
+  "version": "3.0.0",
+  "description": "LingDu (灵渡) CLI - cross-device memory synchronization tool",
+  "main": "src/index.js",
+  "bin": {
+    "lingdu": "./bin/lingdu.js"
+  },
+  "scripts": {
+    "test": "jest --verbose --passWithNoTests"
+  },
+  "dependencies": {
+    "lingdu-core": "^3.0.0",
+    "open": "^10.1.0"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0"
+  }
+}
