@@ -47,7 +47,12 @@ jobs:
       - name: Publish lingdu-core
         run: |
           cd packages/lingdu-core
-          npm publish --access public
+          PACKAGE_VERSION=$(node -p "require('./package.json').version")
+          if npm view lingdu-core@$PACKAGE_VERSION version 2>/dev/null; then
+            echo "lingdu-core@$PACKAGE_VERSION already published, skipping..."
+          else
+            npm publish --access public
+          fi
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
@@ -57,7 +62,12 @@ jobs:
       - name: Publish lingdu
         run: |
           cd packages/lingdu
-          npm publish --access public
+          PACKAGE_VERSION=$(node -p "require('./package.json').version")
+          if npm view lingdu@$PACKAGE_VERSION version 2>/dev/null; then
+            echo "lingdu@$PACKAGE_VERSION already published, skipping..."
+          else
+            npm publish --access public
+          fi
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
