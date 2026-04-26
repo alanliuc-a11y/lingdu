@@ -1,0 +1,13 @@
+{
+  "name": "lingdu-monorepo",
+  "version": "3.0.0",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "test": "npm run test --workspaces",
+    "test:core": "npm test --workspace=packages/lingdu-core",
+    "test:openclaw": "npm test --workspace=packages/lingdu-openclaw"
+  }
+}

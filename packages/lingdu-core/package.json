@@ -1,0 +1,16 @@
+{
+  "name": "lingdu-core",
+  "version": "3.0.0",
+  "description": "LingDu (灵渡) core library - sync engine, API client, schema processing",
+  "main": "src/index.js",
+  "scripts": {
+    "test": "jest --verbose"
+  },
+  "dependencies": {
+    "chokidar": "^3.5.3",
+    "ws": "^8.14.2"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0"
+  }
+}
