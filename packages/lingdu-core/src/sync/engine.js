@@ -32,6 +32,7 @@ class SyncEngine extends EventEmitter {
     this.deviceIdShort = this.deviceId.substring(0, 8);
     this.pendingChanges = [];
     this.isSyncing = false;
+    this.adapter = config.adapter || null;
   }
 
   async initialize() {
@@ -414,6 +415,17 @@ class SyncEngine extends EventEmitter {
   }
 
   async writeFileSafe(filename, content) {
+    if (this.adapter && filename === 'MEMORY.md') {
+      try {
+        const schema = typeof content === 'string' ? JSON.parse(content) : content;
+        this.adapter.write(schema);
+        console.log(`[LingDu] Written via adapter: ${filename}`);
+        return;
+      } catch (e) {
+        console.error(`[LingDu] Adapter write error: ${e.message}`);
+      }
+    }
+
     const filePath = path.join(this.profilesDir, filename);
 
     await this.createBackup(filename);
@@ -560,6 +572,13 @@ class SyncEngine extends EventEmitter {
   }
 
   async buildProfilesContent() {
+    if (this.adapter) {
+      const schema = this.adapter.read();
+      const profiles = {};
+      profiles['MEMORY.md'] = JSON.stringify(schema);
+      return profiles;
+    }
+
     const profiles = {};
 
     for (const filename of SYNC_FILES) {

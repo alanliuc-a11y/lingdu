@@ -2,7 +2,7 @@ const { SyncEngine, SCENE_FIRST_DEVICE, SCENE_EMPTY_DEVICE, SCENE_USED_DEVICE, S
 const { APIClient } = require('./api');
 const { createOAuthServer, DeviceCodeFlow } = require('./auth');
 const { ConfigManager } = require('./config');
-const { SCHEMA_VERSION, EMPTY_SCHEMA, MemoryParser, MemoryGenerator, SchemaMerger } = require('./schema');
+const { SCHEMA_VERSION, EMPTY_SCHEMA, MemoryParser, MemoryGenerator, SchemaMerger, WorkBuddyAdapter } = require('./schema');
 
 module.exports = {
   SyncEngine,
@@ -19,5 +19,6 @@ module.exports = {
   EMPTY_SCHEMA,
   MemoryParser,
   MemoryGenerator,
-  SchemaMerger
+  SchemaMerger,
+  WorkBuddyAdapter
 };

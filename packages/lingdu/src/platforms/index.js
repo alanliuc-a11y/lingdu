@@ -1,5 +1,6 @@
 const path = require('path');
 const os = require('os');
+const workbuddy = require('./workbuddy');
 
 const platforms = {
   openclaw: {
@@ -7,11 +8,7 @@ const platforms = {
     profilesDir: path.join(os.homedir(), '.openclaw', 'workspace'),
     configDir: path.join(os.homedir(), '.lingdu')
   },
-  workbuddy: {
-    name: 'WorkBuddy',
-    profilesDir: path.join(os.homedir(), '.workbuddy', 'workspace'),
-    configDir: path.join(os.homedir(), '.lingdu')
-  },
+  workbuddy: workbuddy,
   copaw: {
     name: 'CoPaw',
     profilesDir: path.join(os.homedir(), '.copaw', 'workspace'),
