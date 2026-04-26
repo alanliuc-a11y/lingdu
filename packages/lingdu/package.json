@@ -1,6 +1,6 @@
 {
   "name": "lingdu",
-  "version": "3.0.1",
+  "version": "3.0.2",
   "description": "LingDu (灵渡) CLI - cross-device memory synchronization tool",
   "main": "src/index.js",
   "bin": {
